@@ -365,7 +365,7 @@ const store = (() => {
   };
 })();
 
-const K_CID = "ca.clientId", K_DEC = "ca.decisions";
+const K_CID = "ca.clientId", K_DEC = "ca.decisions", K_DONE = "ca.done";
 
 /* ============================================================
    State
@@ -380,14 +380,17 @@ let token = null, tokenClient = null;
 let people = [];            // all contacts
 let queue = [];             // undecided, in order
 let groups = [];            // {resourceName,name}
-let decisions = {};         // resourceName -> decision
+let decisions = {};         // pending, not yet sent — resourceName -> decision
+let done = {};              // already pushed — resourceName -> verdict
 let history = [];           // for undo
 let cardEls = [];
 
 try { decisions = JSON.parse(store.get(K_DEC) || "{}"); } catch(e){ decisions = {}; }
+try { done = JSON.parse(store.get(K_DONE) || "{}"); } catch(e){ done = {}; }
 
 const $ = id => document.getElementById(id);
 const saveDecisions = () => store.set(K_DEC, JSON.stringify(decisions));
+const saveDone = () => store.set(K_DONE, JSON.stringify(done));
 
 function toast(msg, ms){
   const t = $("toast");
@@ -533,8 +536,17 @@ function initials(n){
 /* ============================================================
    Deck
    ============================================================ */
+// A contact already carrying the Archived or Wedding label was sorted at some
+// point — even on another device — so don't serve it again.
+function seenViaLabel(p){
+  const mine = new Set(groupsOf(p));
+  return groups.some(g =>
+    (g.name === ARCHIVE_LABEL || g.name === WEDDING_LABEL) && mine.has(g.resourceName));
+}
+
 function startDeck(){
-  queue = people.filter(p => !decisions[p.resourceName]);
+  queue = people.filter(p =>
+    !decisions[p.resourceName] && !done[p.resourceName] && !seenViaLabel(p));
   $("ledger").classList.remove("hide");
   $("rail").classList.remove("hide");
   $("actions").classList.remove("hide");
@@ -544,17 +556,18 @@ function startDeck(){
 
 function updateLedger(){
   let k=0,a=0,w=0,d=0;
-  for(const key in decisions){
-    const v = decisions[key].verdict;
+  const count = v => {
     if(v==="keep")k++; else if(v==="archive")a++;
     else if(v==="wedding")w++; else if(v==="delete")d++;
-  }
+  };
+  for(const key in done) count(done[key]);
+  for(const key in decisions) count(decisions[key].verdict);
   $("tKeep").textContent = k;
   $("tArch").textContent = a + (d ? "+" + d : "");
   $("tWed").textContent = w;
   $("tLeft").textContent = queue.length;
-  const done = people.length - queue.length;
-  $("railFill").style.width = people.length ? (done/people.length*100) + "%" : "0";
+  const sorted = people.length - queue.length;
+  $("railFill").style.width = people.length ? (sorted/people.length*100) + "%" : "0";
   const n = k+a+w+d;
   $("btnPush").disabled = !n;
   $("btnReview").disabled = !n;
@@ -566,9 +579,17 @@ function render(){
   const deck = $("deck");
 
   if(!queue.length){
-    deck.innerHTML = '<div class="empty"><h3>Every contact seen</h3>' +
-      '<p>' + people.length + ' contacts sorted. Push your decisions to Google when ready.</p>' +
-      '<button class="chip hot" onclick="document.getElementById(\'btnReview\').click()">Review pending</button></div>';
+    const pending = Object.keys(decisions).length;
+    deck.innerHTML = '<div class="empty"><h3>' +
+      (pending ? "Nothing left to sort" : "All caught up") + '</h3><p>' +
+      (pending
+        ? pending + " decision" + (pending>1?"s":"") + " waiting to go to Google."
+        : "Every one of your " + people.length + " contacts has been sorted and pushed.") +
+      '</p>' +
+      (pending ? '<button class="chip hot" id="emptyReview">Review pending</button>' : "") +
+      '<button class="chip" id="emptyRedo">Sort everyone again</button></div>';
+    const r = $("emptyReview"); if(r) r.onclick = openReview;
+    $("emptyRedo").onclick = reAudit;
     $("actions").classList.add("hide");
     $("hint").classList.add("hide");
     return;
@@ -728,6 +749,18 @@ function actNow(verdict){
   commit(p, el, verdict);
 }
 
+// Wipe the local record of what's been sorted so every contact comes back.
+// Labels already applied in Google stay put — this only forgets, it never undoes.
+function reAudit(){
+  if(!confirm("Sort all " + people.length + " contacts again from the start?\n\n" +
+              "Labels already in Google stay as they are. This only clears what this " +
+              "app remembers having shown you.")) return;
+  done = {}; history = []; saveDone();
+  queue = people.filter(p => !decisions[p.resourceName]);
+  render();
+  toast("Starting over");
+}
+
 function undo(){
   const id = history.pop();
   if(!id){ toast("Nothing to undo"); return; }
@@ -824,6 +857,7 @@ async function doPush(){
   foot.innerHTML = '<button class="btn" disabled id="btnGo">Working…</button>';
   const say = t => { $("btnGo").textContent = t; };
   const failures = [];
+  const failedIds = new Set();   // don't mark these sorted — they get re-served
 
   try {
     // 1. groups we may need
@@ -843,7 +877,7 @@ async function doPush(){
           method: "PATCH",
           body: { etag: d.etag, biographies: [{ value: d.note, contentType: "TEXT_PLAIN" }] }
         });
-      } catch(e){ failures.push(d.name + " (note): " + e.message); }
+      } catch(e){ failures.push(d.name + " (note): " + e.message); failedIds.add(id); }
     }
 
     // 3. label membership, batched per group
@@ -869,7 +903,10 @@ async function doPush(){
           method:"POST",
           body:{ resourceNamesToAdd: add || [], resourceNamesToRemove: rem || [] }
         });
-      } catch(e){ failures.push("Label batch: " + e.message); }
+      } catch(e){
+        failures.push("Label batch: " + e.message);
+        (add || rem || []).forEach(id => failedIds.add(id));
+      }
     }
 
     // 4. deletes, last
@@ -877,11 +914,21 @@ async function doPush(){
     for(let i=0;i<delIds.length;i++){
       say("Deleting " + (i+1) + "/" + delIds.length);
       try { await api("/" + delIds[i] + ":deleteContact", { method:"DELETE" }); }
-      catch(e){ failures.push(decisions[delIds[i]].name + " (delete): " + e.message); }
+      catch(e){
+        failures.push(decisions[delIds[i]].name + " (delete): " + e.message);
+        failedIds.add(delIds[i]);
+      }
     }
 
-    // 5. done
-    decisions = {}; history = []; saveDecisions();
+    // 5. remember what went through, keep failures pending for a retry
+    const kept = {};
+    keys.forEach(k => {
+      if(failedIds.has(k)) kept[k] = decisions[k];
+      else done[k] = decisions[k].verdict;
+    });
+    decisions = kept; history = [];
+    saveDecisions(); saveDone();
+
     $("pushBody").innerHTML = failures.length
       ? '<h3 style="font-family:Fraunces,serif">Pushed, with ' + failures.length + ' problem' +
         (failures.length>1?'s':'') + '</h3><p class="help">Everything else went through. These didn\'t:</p>' +
