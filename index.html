@@ -232,7 +232,7 @@ select.txt{appearance:none;-webkit-appearance:none}
     <h2>Labels<span class="sub" id="traySub"></span></h2>
   </div>
   <div class="pbody">
-    <input class="txt" id="trayQ" placeholder="Search labels, or type a new one" autocomplete="off" autocapitalize="words" spellcheck="false">
+    <input class="txt" id="trayQ" placeholder="Search labels, or type a new one" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" enterkeyhint="done">
     <div id="trayBody"></div>
   </div>
   <div class="pfoot"><button class="btn" id="btnTrayDone">Done</button></div>
@@ -254,7 +254,7 @@ select.txt{appearance:none;-webkit-appearance:none}
   <div class="phead"><button class="chip" id="btnBulkClose">Back</button><h2>Bulk piles</h2></div>
   <div class="pbody">
     <select class="txt" id="bulkPile" aria-label="Pile"></select>
-    <input class="txt" id="bulkQ" placeholder="Filter by name, email, company" autocomplete="off" spellcheck="false">
+    <input class="txt" id="bulkQ" placeholder="Filter by name, email, company" autocomplete="off" autocorrect="off" spellcheck="false">
     <div class="bulkmeta"><span id="bulkCount"></span><button class="chip" id="btnBulkAll">Select all</button></div>
     <div id="bulkList"></div>
   </div>
@@ -293,7 +293,7 @@ select.txt{appearance:none;-webkit-appearance:none}
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
 "use strict";
-const VERSION = "5.1";
+const VERSION = "5.2";
 
 /* ============================================================
    SETTINGS — the only place you need to edit to change behaviour
@@ -981,6 +981,7 @@ function renderTray(){
   $("trayBody").querySelectorAll("[data-g]").forEach(b => b.onclick = () => {
     const id = b.dataset.g;
     tray.sel.has(id) ? tray.sel.delete(id) : tray.sel.add(id);
+    $("trayQ").value = "";          // typed text was a search; don't leave it behind
     renderTray();
   });
   $("trayBody").querySelectorAll("[data-pin]").forEach(b => b.onclick = () => {
@@ -989,19 +990,39 @@ function renderTray(){
     savePins(); renderTray();
   });
   const c = $("trayCreate");
-  if(c) c.onclick = async () => {
-    c.disabled = true; c.querySelector(".nm").textContent = "Creating…";
-    try {
-      const id = await ensureGroup(q);        // saved to Google right away
-      tray.sel.add(id);
-      $("trayQ").value = "";
-      toast("Created " + q);
-    } catch(e){ toast("Couldn't create it: " + e.message, 3500); }
-    renderTray();
-  };
+  if(c) c.onclick = () => { c.disabled = true; c.querySelector(".nm").textContent = "Creating…"; trayUseText(); };
 }
 
-function trayDone(){
+// Turns whatever is typed in the tray's box into a ticked label: an existing
+// label with that exact name is ticked, otherwise the label is created in Google
+// right away. Returns false only if creating failed.
+let trayBusy = false;
+async function trayUseText(){
+  const t = tray, name = $("trayQ").value.trim().replace(/\s+/g, " ");
+  if(!t || !name) return true;
+  if(trayBusy) return false;
+  const existing = gid(name);
+  if(existing && hiddenIds().has(existing)){ toast("“" + name + "” is handled by the swipes"); return true; }
+  trayBusy = true; $("btnTrayDone").disabled = true;
+  let ok = true;
+  try {
+    const id = existing || await ensureGroup(name);
+    t.sel.add(id);
+    if(tray === t) $("trayQ").value = "";
+    toast((existing ? "Ticked “" : "Created “") + name + "”");
+  } catch(e){ ok = false; toast("Couldn't create “" + name + "”: " + e.message, 4000); }
+  trayBusy = false; $("btnTrayDone").disabled = false;
+  if(tray === t) renderTray();
+  return ok;
+}
+
+async function trayDone(){
+  if(!tray || trayBusy) return;
+  // A brand-new name still sitting in the box (nothing matches it) means "create this and use it".
+  const typed = $("trayQ").value.trim().toLowerCase();
+  if(typed && !trayGroups().some(g => g.name.toLowerCase().includes(typed))){
+    if(!(await trayUseText())) return;
+  }
   if(!tray) return;
   const t = tray, a = labelAction();
   if(t.mode === "bulk"){
@@ -1016,6 +1037,8 @@ function trayDone(){
   const el = topEl(t.person);
   flyFor(el, a, 0);
   commit(t.person, el, a, t.sel);
+  const picked = groups.filter(g => t.sel.has(g.resourceName)).map(g => g.name);
+  toast(nameOf(t.person) + " → " + (picked.length ? picked.join(", ") : "no labels"), 3000);
 }
 
 /* ============================================================
@@ -1064,6 +1087,12 @@ const PILES = [
 ];
 let bulkSel = new Set(), bulkShown = [];
 
+// Already pushed and marked Reviewed. Offered as a pile so a mistake can be fixed later.
+function reviewedList(){
+  const rev = gid(REVIEWED_LABEL);
+  return rev ? people.filter(p => !p._gone && p._g.has(rev) && !decisions[p.resourceName]) : [];
+}
+
 function pileTest(v){
   if(v.startsWith("g:")){ const id = v.slice(2); return p => p._g.has(id); }
   return (PILES.find(x => x.id === v) || PILES[0]).test;
@@ -1077,6 +1106,7 @@ function openBulk(){
     h += '<optgroup label="Has label">' + withLabel.map(x =>
       '<option value="g:' + esc(x[0].resourceName) + '">' + esc(x[0].name) + " (" + x[1] + ")</option>").join("") + '</optgroup>';
   }
+  h += '<optgroup label="Fix a mistake"><option value="reviewed">Already reviewed (' + reviewedList().length + ')</option></optgroup>';
   $("bulkPile").innerHTML = h;
   $("bulkPile").value = cur;
   if(!$("bulkPile").value) $("bulkPile").value = "nophone";
@@ -1090,11 +1120,13 @@ function openBulk(){
 }
 
 function renderBulk(){
-  const test = pileTest($("bulkPile").value || "all");
+  const pile = $("bulkPile").value || "all";
+  const test = pile === "reviewed" ? (p => true) : pileTest(pile);
+  const source = pile === "reviewed" ? reviewedList() : queue;
   const q = $("bulkQ").value.trim().toLowerCase();
   const text = p => (nameOf(p) + " " + (p.emailAddresses || []).map(e => e.value).join(" ") + " " +
                      (p.organizations || []).map(o => o.name || "").join(" ")).toLowerCase();
-  bulkShown = queue.filter(p => test(p) && (!q || text(p).includes(q)));
+  bulkShown = source.filter(p => test(p) && (!q || text(p).includes(q)));
   const ids = new Set(bulkShown.map(p => p.resourceName));
   bulkSel.forEach(id => { if(!ids.has(id)) bulkSel.delete(id); });
 
@@ -1105,7 +1137,7 @@ function renderBulk(){
     return '<label class="row"><input type="checkbox" data-id="' + esc(p.resourceName) + '"' +
       (bulkSel.has(p.resourceName) ? " checked" : "") + '><span class="nm">' + esc(nameOf(p)) +
       (sub ? '<small>' + esc(sub) + '</small>' : "") + '</span></label>';
-  }).join("") : '<p class="help">Nobody left to sort in this pile.</p>';
+  }).join("") : '<p class="help">Nobody in this pile.</p>';
 
   $("bulkList").querySelectorAll("input").forEach(c => c.onchange = () => {
     c.checked ? bulkSel.add(c.dataset.id) : bulkSel.delete(c.dataset.id);
@@ -1146,8 +1178,9 @@ function openReview(){
                          String(decisions[a].name).localeCompare(String(decisions[b].name)));
     box.innerHTML = keys.map(k => {
       const d = decisions[k], a = actionById(d.verdict);
+      const gname = id => (groups.find(g => g.resourceName === id) || {}).name || "label";
       const marks = (d.rename ? " · name" : "") + (d.note !== null ? " · note" : "") +
-                    (d.add.length || d.remove.length ? " · labels" : "");
+                    d.add.map(id => " · +" + gname(id)).join("") + d.remove.map(id => " · −" + gname(id)).join("");
       return '<div class="row"><span class="nm">' + esc(d.name) +
              '<span style="color:var(--muted);font-size:12px">' + esc(marks) + '</span></span>' +
              '<span class="vd" style="--c:' + a.color + '">' + esc(a.name) + '</span>' +
@@ -1422,6 +1455,7 @@ $("btnClearAll").onclick = () => {
 $("btnTrayCancel").onclick = closeTray;
 $("btnTrayDone").onclick = trayDone;
 $("trayQ").oninput = renderTray;
+$("trayQ").addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); trayUseText(); } });
 
 document.addEventListener("keydown", e => {
   if(e.target.matches("input,textarea,select")) return;
