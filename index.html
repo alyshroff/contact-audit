@@ -87,6 +87,11 @@ input,textarea,select{font:inherit}
 }
 .cname{font-family:'Fraunces',serif;font-weight:600;font-size:29px;line-height:1.1;letter-spacing:-.015em;margin:0 0 3px;overflow-wrap:anywhere}
 .corg{color:var(--muted);font-size:14.5px;margin-bottom:16px;overflow-wrap:anywhere}
+.namerow{display:flex;align-items:flex-start;gap:8px}
+.namerow .cname{flex:1;min-width:0}
+.editname{flex:0 0 auto;border:1px dashed rgba(26,22,34,.32);border-radius:999px;padding:5px 10px;font-size:12.5px;color:var(--muted);margin-top:5px;white-space:nowrap}
+.nameedit{display:grid;gap:6px;margin:0 0 10px}
+.nameedit input{width:100%;border:1px solid rgba(26,22,34,.18);border-radius:10px;padding:9px 10px;background:#fff;color:var(--text);font-size:16px}
 .flag{display:inline-block;font-size:11px;color:var(--muted);border:1px dashed rgba(26,22,34,.3);border-radius:6px;padding:2px 7px;margin-bottom:12px}
 .field{display:flex;gap:9px;padding:7px 0;border-top:1px solid rgba(26,22,34,.09);font-size:14.5px;overflow-wrap:anywhere}
 .field .k{flex:0 0 62px;color:var(--muted);font-size:10px;letter-spacing:.11em;text-transform:uppercase;padding-top:4px}
@@ -288,7 +293,7 @@ select.txt{appearance:none;-webkit-appearance:none}
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
 "use strict";
-const VERSION = 5;
+const VERSION = "5.1";
 
 /* ============================================================
    SETTINGS — the only place you need to edit to change behaviour
@@ -631,6 +636,17 @@ function computeQueues(){
   });
 }
 
+// Contacts that live only inside a label. Each push adds them to the main Contacts list.
+const outsideList = () => people.filter(p => !p._gone && !p._g.has(MY) &&
+  !(decisions[p.resourceName] && decisions[p.resourceName].del));
+
+function pushTotal(){
+  const s = new Set(Object.keys(decisions));
+  catchup.forEach(p => s.add(p.resourceName));
+  outsideList().forEach(p => s.add(p.resourceName));
+  return s.size;
+}
+
 function startDeck(){
   computeQueues();
   $("ledger").classList.remove("hide");
@@ -649,7 +665,7 @@ function updateLedger(){
   });
   $("tallies").innerHTML = h;
   $("railFill").style.width = people.length ? ((people.length - queue.length) / people.length * 100) + "%" : "0";
-  const n = pendingCount() + catchup.length;
+  const n = pushTotal();
   $("btnPush").disabled = !n;
   $("btnPush").textContent = n ? "Push " + n : "Push";
 }
@@ -662,9 +678,9 @@ function render(){
     const pending = pendingCount();
     deck.innerHTML = '<div class="empty"><h3>' + (pending ? "Nothing left to sort" : "All caught up") + '</h3><p>' +
       (pending ? pending + " decision" + (pending > 1 ? "s" : "") + " waiting to go to Google."
-               : catchup.length ? catchup.length + " contacts sorted earlier still need the Reviewed label. Press Push."
+               : pushTotal() ? "A little housekeeping is waiting to go to Google. Press Push."
                : "Every one of your " + people.length + " contacts has been reviewed.") +
-      '</p>' + (pending ? '<button class="chip hot" id="emptyPush">Push to Google</button>' : "") + '</div>';
+      '</p>' + (pushTotal() ? '<button class="chip hot" id="emptyPush">Push to Google</button>' : "") + '</div>';
     const r = $("emptyPush"); if(r) r.onclick = openPush;
     $("actions").classList.add("hide"); $("hint").classList.add("hide");
     cardEls = [];
@@ -724,9 +740,10 @@ function buildCard(p){
       (photo
         ? '<img class="avatar" src="' + esc(photo.url) + '" alt="" referrerpolicy="no-referrer">'
         : '<div class="avatar">' + esc(initials(nm)) + '</div>') +
-      '<h1 class="cname">' + esc(nm) + '</h1>' +
+      '<div class="namerow"><h1 class="cname">' + esc(nm) + '</h1>' +
+        '<button class="editname" data-open="name" aria-label="Edit name">✎ Name</button></div>' +
       (orgTxt && orgTxt !== nm ? '<div class="corg">' + esc(orgTxt) + '</div>' : '<div style="height:8px"></div>') +
-      (p._g.has(MY) ? "" : '<div class="flag">Not in your main Contacts list</div>') +
+      (p._g.has(MY) ? "" : '<div class="flag">Label only — joins your main Contacts list on the next push</div>') +
       f +
       '<div class="sect">Labels</div><div class="labels">' + labs + '</div>' +
       '<div class="sect">Note</div>' +
@@ -734,8 +751,31 @@ function buildCard(p){
     '</div>';
 
   el.querySelector('[data-open="tray"]').onclick = ev => { ev.stopPropagation(); openTray({ mode:"card", person:p }); };
+  el.querySelector('[data-open="name"]').onclick = ev => { ev.stopPropagation(); editName(el, p); };
   el.querySelector(".note").addEventListener("pointerdown", ev => ev.stopPropagation());
   return el;
+}
+
+/* ---------- Editing a name on the card ---------- */
+const nameParts = p => {
+  const n = (p.names && p.names[0]) || {};
+  return { given: n.givenName || "", middle: n.middleName || "", family: n.familyName || "" };
+};
+// Parts of a name the card doesn't show; carried over untouched when a name is edited.
+const NAME_KEEP = ["honorificPrefix","honorificSuffix","phoneticGivenName","phoneticMiddleName","phoneticFamilyName",
+                   "phoneticHonorificPrefix","phoneticHonorificSuffix"];
+
+function editName(el, p){
+  if(el.querySelector(".nameedit")) return;
+  const n = nameParts(p);
+  const box = document.createElement("div");
+  box.className = "nameedit";
+  box.innerHTML = [["given","First name"],["middle","Middle name"],["family","Last name"]].map(f =>
+    '<input data-n="' + f[0] + '" placeholder="' + f[1] + '" aria-label="' + f[1] + '" value="' + esc(n[f[0]]) +
+    '" autocomplete="off" autocapitalize="words" spellcheck="false">').join("");
+  el.querySelector(".namerow").replaceWith(box);
+  box.querySelectorAll("input").forEach(i => i.addEventListener("pointerdown", ev => ev.stopPropagation()));
+  box.querySelector("input").focus();
 }
 
 /* ---------- Swipe ---------- */
@@ -748,7 +788,7 @@ function attachSwipe(el, person){
   const op = (n, v) => { if(n) n.style.opacity = v; };
 
   el.addEventListener("pointerdown", e => {
-    if(e.target.closest("textarea,a,button")) return;
+    if(e.target.closest("textarea,input,a,button")) return;
     if(decided) return;
     active = true; sx = e.clientX; sy = e.clientY; dx = dy = 0;
     el.classList.remove("settle");
@@ -835,6 +875,19 @@ function commit(person, el, a, sel){
   if(noteEl){
     const v = noteEl.value.trim();
     if(v !== bioOf(person).trim()) extra.note = v;
+  }
+  const ne = el ? el.querySelector(".nameedit") : null;
+  if(ne && !a.remove){
+    const v = k => ne.querySelector('[data-n="' + k + '"]').value.trim().replace(/\s+/g, " ");
+    const now = { given: v("given"), middle: v("middle"), family: v("family") }, was = nameParts(person);
+    if(now.given !== was.given || now.middle !== was.middle || now.family !== was.family){
+      const n0 = (person.names && person.names[0]) || {};
+      now.keep = {};
+      NAME_KEEP.forEach(k => { if(n0[k]) now.keep[k] = n0[k]; });
+      extra.rename = now;
+      const shown = [now.given, now.middle, now.family].filter(Boolean).join(" ");
+      if(shown) extra.name = shown;
+    }
   }
   decisions[person.resourceName] = makeDecision(person, a, extra);
   history.push([person.resourceName]);
@@ -1093,7 +1146,8 @@ function openReview(){
                          String(decisions[a].name).localeCompare(String(decisions[b].name)));
     box.innerHTML = keys.map(k => {
       const d = decisions[k], a = actionById(d.verdict);
-      const marks = (d.note !== null ? " · note" : "") + (d.add.length || d.remove.length ? " · labels" : "");
+      const marks = (d.rename ? " · name" : "") + (d.note !== null ? " · note" : "") +
+                    (d.add.length || d.remove.length ? " · labels" : "");
       return '<div class="row"><span class="nm">' + esc(d.name) +
              '<span style="color:var(--muted);font-size:12px">' + esc(marks) + '</span></span>' +
              '<span class="vd" style="--c:' + a.color + '">' + esc(a.name) + '</span>' +
@@ -1124,13 +1178,14 @@ const chunk = (arr, n) => { const o = []; for(let i = 0; i < arr.length; i += n)
 
 function openPush(){
   const keys = Object.keys(decisions);
-  if(!keys.length && !catchup.length){ toast("Nothing to push"); return; }
-  const by = {}; let notes = 0, labs = 0, dels = 0;
+  if(!pushTotal()){ toast("Nothing to push"); return; }
+  const outside = outsideList().length;
+  const by = {}; let notes = 0, names = 0, labs = 0, dels = 0;
   keys.forEach(k => {
     const d = decisions[k];
     by[d.verdict] = (by[d.verdict] || 0) + 1;
     if(d.del) dels++;
-    else { if(d.note !== null) notes++; if(d.add.length || d.remove.length) labs++; }
+    else { if(d.note !== null) notes++; if(d.rename) names++; if(d.add.length || d.remove.length) labs++; }
   });
   const line = (n, t, c) => n ? '<div class="row"><span class="nm"' + (c ? ' style="color:' + c + '"' : "") + '>' + t +
     '</span><span class="num"' + (c ? ' style="color:' + c + '"' : "") + '>' + n + '</span></div>' : "";
@@ -1144,14 +1199,16 @@ function openPush(){
       a.remove ? "var(--danger)" : null)).join("") +
     Object.keys(by).filter(v => !seen.has(v)).map(v => line(by[v], esc(v))).join("") +
     line(labs, "Label changes you picked") +
+    line(names, "Names changed") +
     line(notes, "Notes rewritten") +
     line(keys.length - dels, "Marked “" + esc(REVIEWED_LABEL) + "” so they don&rsquo;t come back") +
     line(catchup.length, "Sorted earlier — also marked “" + esc(REVIEWED_LABEL) + "”") +
+    line(outside, "Added to your main Contacts list (were only in a label)") +
     (dels ? '<p class="help" style="color:var(--danger)">Deleted contacts sit in Google&rsquo;s trash for 30 days, then are gone.</p>' : "") +
     (dels > 12 ? '<p class="help">Deletions are paced to stay under Google&rsquo;s write limit, so this will take roughly ' +
        Math.ceil(dels * 1.2 / 60) + ' minute' + (dels * 1.2 > 90 ? "s" : "") + '. Leave the screen open.</p>' : "");
 
-  const total = keys.length + catchup.length;
+  const total = pushTotal();
   $("pushFoot").innerHTML =
     '<button class="btn ghost" id="btnCancelPush">Cancel</button>' +
     (keys.length ? '<button class="btn ghost" id="btnPushReview">See the list</button>' : "") +
@@ -1162,14 +1219,28 @@ function openPush(){
   $("pPush").classList.remove("hide");
 }
 
-async function writeNote(id, d){
-  const body = etag => ({ etag, biographies: d.note ? [{ value: d.note, contentType: "TEXT_PLAIN" }] : [] });
-  const path = "/" + id + ":updateContact?updatePersonFields=biographies";
+async function writeFields(id, d){
+  const fields = [];
+  if(d.rename) fields.push("names");
+  if(d.note !== null) fields.push("biographies");
+  const body = etag => {
+    const b = { etag };
+    if(d.note !== null) b.biographies = d.note ? [{ value: d.note, contentType: "TEXT_PLAIN" }] : [];
+    if(d.rename){
+      const n = Object.assign({}, d.rename.keep || {});
+      if(d.rename.given) n.givenName = d.rename.given;
+      if(d.rename.middle) n.middleName = d.rename.middle;
+      if(d.rename.family) n.familyName = d.rename.family;
+      b.names = (d.rename.given || d.rename.middle || d.rename.family) ? [n] : [];
+    }
+    return b;
+  };
+  const path = "/" + id + ":updateContact?updatePersonFields=" + fields.join(",");
   try { await api(path, { method:"PATCH", body: body(d.etag) }); }
   catch(e){
     // The contact changed since it was loaded (another device, or an earlier try): fetch the current version once.
     if(e.status !== 400 && e.status !== 409 && e.status !== 412) throw e;
-    const fresh = await api("/" + id + "?personFields=biographies");
+    const fresh = await api("/" + id + "?personFields=names,biographies");
     d.etag = fresh.etag;
     await api(path, { method:"PATCH", body: body(fresh.etag) });
   }
@@ -1200,13 +1271,13 @@ async function doPush(){
       }
     }
 
-    // 2. notes (one call each — Google requires the contact's current version)
-    const noteIds = keys.filter(k => decisions[k].note !== null && !decisions[k].del);
+    // 2. names and notes (one call each — Google requires the contact's current version)
+    const noteIds = keys.filter(k => (decisions[k].note !== null || decisions[k].rename) && !decisions[k].del);
     for(let i = 0; i < noteIds.length; i++){
       const id = noteIds[i], d = decisions[id];
-      say("Notes " + (i + 1) + "/" + noteIds.length);
-      try { await writeNote(id, d); }
-      catch(e){ if(e.status === 404) gone.add(id); else fail([id], d.name + " (note): " + e.message); }
+      say("Names and notes " + (i + 1) + "/" + noteIds.length);
+      try { await writeFields(id, d); }
+      catch(e){ if(e.status === 404) gone.add(id); else fail([id], d.name + " (name or note): " + e.message); }
       if(i < noteIds.length - 1) await sleep(PACE_NOTE);
     }
 
@@ -1222,6 +1293,11 @@ async function doPush(){
       d.remove.forEach(g => put(removes, g, k));
     });
     catchup.forEach(p => put(adds, revG, p.resourceName));
+    const mainIds = new Set();
+    outsideList().forEach(p => {
+      if(failedIds.has(p.resourceName) || gone.has(p.resourceName)) return;
+      mainIds.add(p.resourceName); put(adds, MY, p.resourceName);
+    });
 
     const jobs = [];
     Object.keys(adds).forEach(g => chunk([...adds[g]], 200).forEach(c => jobs.push([g, c, null])));
@@ -1236,8 +1312,9 @@ async function doPush(){
         });
         (r.notFoundResourceNames || []).forEach(id => gone.add(id));
       } catch(e){
-        const gname = (groups.find(x => x.resourceName === g) || {}).name || "a label";
-        fail(add || rem || [], "“" + gname + "” for " + (add || rem).length + " contacts: " + e.message);
+        const gname = g === MY ? "Main Contacts list" : (groups.find(x => x.resourceName === g) || {}).name || "A label";
+        if(g === MY) (add || []).forEach(id => mainIds.delete(id));
+        fail(add || rem || [], gname + " for " + (add || rem).length + " contacts: " + e.message);
       }
       if(i < jobs.length - 1) await sleep(PACE_WRITE);   // stay under the write cap
     }
@@ -1266,12 +1343,15 @@ async function doPush(){
     people.forEach(p => {
       const id = p.resourceName;
       if(gone.has(id)) p._gone = true;
-      else if(keys.includes(id) && !failedIds.has(id)) p._g.add(revG);
+      else {
+        if(mainIds.has(id)) p._g.add(MY);
+        if(keys.includes(id) && !failedIds.has(id)) p._g.add(revG);
+      }
     });
     saveDecisions(); saveDone();
     computeQueues(); updateLedger();
 
-    const left = pendingCount() + catchup.length;
+    const left = pushTotal();
     $("pushBody").innerHTML = failures.length
       ? '<h3 style="font-family:Fraunces,serif">Pushed, with ' + failures.length + ' problem' +
         (failures.length > 1 ? "s" : "") + '</h3><p class="help">Everything else went through. These didn&rsquo;t, and are still pending:</p>' +
