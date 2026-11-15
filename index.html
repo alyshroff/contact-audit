@@ -4,33 +4,29 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Contacts">
 <meta name="theme-color" content="#17141F">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-180.png">
 <title>Contact Audit</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --ink:#17141F;
-  --ink-2:#211D2C;
-  --ink-3:#2C2739;
-  --paper:#F7F4EE;
-  --paper-2:#E9E3D8;
-  --text:#1A1622;
-  --muted:#7B7389;
-  --keep:#2E7D5B;
-  --archive:#7A6E8F;
-  --wedding:#C08A2E;
-  --danger:#A63A2A;
+  --ink:#17141F; --ink-2:#211D2C; --ink-3:#2C2739;
+  --paper:#F7F4EE; --paper-2:#E9E3D8;
+  --text:#1A1622; --muted:#7B7389;
+  --keep:#2E7D5B; --archive:#7A6E8F; --label:#C08A2E; --danger:#A63A2A;
   --hair:rgba(247,244,238,.14);
   --pad:16px;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;margin:0;overscroll-behavior:none}
 body{
-  background:var(--ink);
-  color:var(--paper);
+  background:var(--ink);color:var(--paper);
   font-family:'Instrument Sans',system-ui,-apple-system,sans-serif;
   font-size:16px;line-height:1.45;
   padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
@@ -38,37 +34,33 @@ body{
   -webkit-font-smoothing:antialiased;
 }
 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
-input,textarea{font:inherit}
+input,textarea,select{font:inherit}
 .hide{display:none !important}
 
-/* ---------- Ledger (signature element) ---------- */
+/* ---------- Ledger ---------- */
 #ledger{
   flex:0 0 auto;padding:10px var(--pad) 8px;
   border-bottom:1px solid var(--hair);
-  display:flex;align-items:flex-end;gap:14px;
+  display:flex;align-items:flex-end;gap:12px;
 }
-.tally{display:flex;flex-direction:column;gap:3px;min-width:0}
+#tallies{display:flex;gap:14px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}
+#tallies::-webkit-scrollbar{display:none}
+.tally{display:flex;flex-direction:column;gap:3px;flex:0 0 auto}
 .tally .n{
   font-family:'Fraunces',serif;font-weight:900;font-size:22px;line-height:1;
-  font-variant-numeric:tabular-nums;
+  font-variant-numeric:tabular-nums;color:var(--c,var(--paper));
 }
-.tally .l{
-  font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;
-  color:var(--muted);white-space:nowrap;
-}
-.tally.keep .n{color:var(--keep)}
-.tally.arch .n{color:var(--archive)}
-.tally.wed  .n{color:var(--wedding)}
-.tally.left .n{color:var(--paper)}
-#ledger .spacer{flex:1}
-#ledgerBtns{display:flex;gap:6px}
+.tally .l{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+#ledgerBtns{display:flex;gap:6px;flex:0 0 auto}
 .chip{
   border:1px solid var(--hair);border-radius:999px;
-  padding:7px 12px;font-size:12.5px;font-weight:500;color:var(--paper);
+  padding:7px 12px;font-size:12.5px;font-weight:500;color:var(--paper);white-space:nowrap;
 }
 .chip:active{background:var(--ink-3)}
 .chip.hot{background:var(--paper);color:var(--ink);border-color:var(--paper);font-weight:600}
 .chip[disabled]{opacity:.35}
+.chip.nudge{animation:nudge 1s ease-in-out 3}
+@keyframes nudge{50%{transform:scale(1.12);box-shadow:0 0 0 6px rgba(192,138,46,.35)}}
 
 #rail{height:2px;background:var(--ink-3);flex:0 0 auto}
 #railFill{height:100%;width:0;background:var(--paper);transition:width .3s ease}
@@ -78,17 +70,14 @@ input,textarea{font:inherit}
 .card{
   position:absolute;left:var(--pad);right:var(--pad);top:14px;bottom:14px;
   background:var(--paper);color:var(--text);
-  border-radius:18px;
-  box-shadow:0 18px 44px rgba(0,0,0,.5);
-  display:flex;flex-direction:column;
-  overflow:hidden;will-change:transform;
-  touch-action:pan-y;
+  border-radius:18px;box-shadow:0 18px 44px rgba(0,0,0,.5);
+  display:flex;flex-direction:column;overflow:hidden;will-change:transform;touch-action:pan-y;
+  max-width:560px;margin:0 auto;
 }
 .card.behind{transform:scale(.945) translateY(14px);filter:brightness(.86);pointer-events:none}
 .card.behind2{transform:scale(.89) translateY(28px);filter:brightness(.72);pointer-events:none}
 .card.settle{transition:transform .26s cubic-bezier(.2,.8,.3,1)}
 .card.fly{transition:transform .3s ease-out,opacity .3s ease-out}
-
 .cbody{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:24px 22px 14px}
 .avatar{
   width:74px;height:74px;border-radius:50%;object-fit:cover;
@@ -96,52 +85,32 @@ input,textarea{font:inherit}
   font-family:'Fraunces',serif;font-weight:600;font-size:27px;color:var(--muted);
   margin-bottom:16px;overflow:hidden;
 }
-.cname{
-  font-family:'Fraunces',serif;font-weight:600;font-size:29px;line-height:1.1;
-  letter-spacing:-.015em;margin:0 0 3px;overflow-wrap:anywhere;
-}
+.cname{font-family:'Fraunces',serif;font-weight:600;font-size:29px;line-height:1.1;letter-spacing:-.015em;margin:0 0 3px;overflow-wrap:anywhere}
 .corg{color:var(--muted);font-size:14.5px;margin-bottom:16px;overflow-wrap:anywhere}
-.field{
-  display:flex;gap:9px;padding:7px 0;
-  border-top:1px solid rgba(26,22,34,.09);
-  font-size:14.5px;overflow-wrap:anywhere;
-}
-.field .k{
-  flex:0 0 62px;color:var(--muted);font-size:10px;letter-spacing:.11em;
-  text-transform:uppercase;padding-top:4px;
-}
+.flag{display:inline-block;font-size:11px;color:var(--muted);border:1px dashed rgba(26,22,34,.3);border-radius:6px;padding:2px 7px;margin-bottom:12px}
+.field{display:flex;gap:9px;padding:7px 0;border-top:1px solid rgba(26,22,34,.09);font-size:14.5px;overflow-wrap:anywhere}
+.field .k{flex:0 0 62px;color:var(--muted);font-size:10px;letter-spacing:.11em;text-transform:uppercase;padding-top:4px}
 .field a{color:var(--text)}
-.labels{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
-.lab{
-  border:1px solid rgba(26,22,34,.2);border-radius:999px;
-  padding:5px 11px;font-size:12.5px;color:var(--text);
-}
+.labels{display:flex;flex-wrap:wrap;gap:6px}
+.lab{border:1px solid rgba(26,22,34,.2);border-radius:999px;padding:5px 11px;font-size:12.5px;color:var(--text)}
 .lab.on{background:var(--text);color:var(--paper);border-color:var(--text)}
-.lab.addlab{
-  border-style:dashed;color:var(--muted);
-  border-color:rgba(26,22,34,.32);font-weight:500;
-}
-.lab.addlab:disabled{opacity:.5}
-.sect{
-  font-size:10px;letter-spacing:.14em;text-transform:uppercase;
-  color:var(--muted);margin:20px 0 7px;
-}
+.lab.addlab{border-style:dashed;color:var(--muted);border-color:rgba(26,22,34,.32);font-weight:500}
+.nolab{font-size:13px;color:var(--muted);padding:5px 0}
+.sect{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:20px 0 7px}
 textarea.note{
   width:100%;min-height:76px;resize:vertical;
   border:1px solid rgba(26,22,34,.18);border-radius:10px;
-  padding:10px;background:#fff;color:var(--text);font-size:15px;
+  padding:10px;background:#fff;color:var(--text);font-size:16px;
 }
-
-/* Rubber stamp */
 .stamp{
   position:absolute;top:52px;font-family:'Fraunces',serif;font-weight:900;
-  font-size:34px;letter-spacing:.06em;text-transform:uppercase;
+  font-size:32px;letter-spacing:.06em;text-transform:uppercase;
   border:4px solid currentColor;border-radius:8px;padding:6px 16px;
-  opacity:0;pointer-events:none;
+  opacity:0;pointer-events:none;white-space:nowrap;
 }
-.stamp.s-arch{left:20px;transform:rotate(-15deg);color:var(--archive)}
-.stamp.s-keep{right:20px;transform:rotate(15deg);color:var(--keep)}
-.stamp.s-wed {left:50%;top:34px;margin-left:-96px;transform:rotate(-5deg);color:var(--wedding);font-size:26px}
+.stamp.s-left{left:20px;transform:rotate(-15deg)}
+.stamp.s-right{right:20px;transform:rotate(15deg)}
+.stamp.s-up{left:50%;top:34px;transform:translateX(-50%) rotate(-5deg);font-size:26px}
 
 /* ---------- Actions ---------- */
 #actions{
@@ -150,20 +119,14 @@ textarea.note{
 }
 .act{
   width:56px;height:56px;border-radius:50%;
-  border:1.5px solid var(--hair);display:grid;place-items:center;
-  font-size:21px;background:var(--ink-2);flex:0 0 auto;
+  border:1.5px solid var(--hair);border-color:color-mix(in srgb,var(--c,#7B7389) 55%,transparent);
+  color:var(--c,var(--muted));
+  display:grid;place-items:center;font-size:21px;background:var(--ink-2);flex:0 0 auto;
 }
 .act:active{transform:scale(.92)}
 .act.wide{width:auto;border-radius:999px;padding:0 20px;height:50px;font-size:14px;font-weight:600;gap:8px;display:flex;align-items:center}
-.act.a-arch{color:var(--archive);border-color:rgba(122,110,143,.5)}
-.act.a-keep{color:var(--keep);border-color:rgba(46,125,91,.5)}
-.act.a-wed{color:var(--wedding);border-color:rgba(192,138,46,.55)}
-.act.a-del{color:var(--danger);border-color:rgba(166,58,42,.4);width:46px;height:46px;font-size:16px}
-.act.a-undo{width:46px;height:46px;font-size:16px;color:var(--muted)}
-.hintline{
-  text-align:center;font-size:11px;color:var(--muted);
-  padding:0 var(--pad) 6px;letter-spacing:.03em;
-}
+.act.small,.act.a-undo{width:46px;height:46px;font-size:16px}
+.hintline{text-align:center;font-size:11px;color:var(--muted);padding:0 var(--pad) 6px;letter-spacing:.03em}
 
 /* ---------- Panels ---------- */
 .panel{
@@ -171,198 +134,208 @@ textarea.note{
   display:flex;flex-direction:column;
   padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
 }
-.phead{
-  padding:16px var(--pad) 12px;border-bottom:1px solid var(--hair);
-  display:flex;align-items:center;gap:12px;flex:0 0 auto;
-}
-.phead h2{font-family:'Fraunces',serif;font-weight:600;font-size:21px;margin:0;flex:1}
-.pbody{flex:1;overflow-y:auto;padding:18px var(--pad) 28px;-webkit-overflow-scrolling:touch}
-.pfoot{padding:12px var(--pad) 16px;border-top:1px solid var(--hair);flex:0 0 auto;display:flex;gap:8px}
-.btn{
-  flex:1;padding:14px;border-radius:12px;background:var(--paper);color:var(--ink);
-  font-weight:600;font-size:15px;text-align:center;
-}
+#pTray{z-index:50}
+#pPush{z-index:55}
+#pSign{z-index:80}
+.pin{max-width:640px;width:100%;margin:0 auto;display:flex;flex-direction:column;flex:1;min-height:0}
+.phead{padding:16px var(--pad) 12px;border-bottom:1px solid var(--hair);display:flex;align-items:center;gap:12px;flex:0 0 auto}
+.phead h2{font-family:'Fraunces',serif;font-weight:600;font-size:21px;margin:0;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.phead .sub{font-size:12px;color:var(--muted);font-family:'Instrument Sans',sans-serif;font-weight:400;display:block}
+.pbody{flex:1;overflow-y:auto;padding:18px var(--pad) 28px;-webkit-overflow-scrolling:touch;min-height:0}
+.pfoot{padding:12px var(--pad) 16px;border-top:1px solid var(--hair);flex:0 0 auto;display:flex;gap:8px;flex-wrap:wrap}
+.btn{flex:1;padding:14px;border-radius:12px;background:var(--paper);color:var(--ink);font-weight:600;font-size:15px;text-align:center;min-width:0}
 .btn.ghost{background:none;border:1px solid var(--hair);color:var(--paper)}
 .btn.warn{background:var(--danger);color:#fff}
+.btn.tint{background:none;border:1.5px solid var(--c);color:var(--c);padding:12px 8px;font-size:14px}
 .btn[disabled]{opacity:.4}
 .txt{
   width:100%;padding:13px;border-radius:11px;border:1px solid var(--hair);
-  background:var(--ink-2);color:var(--paper);font-size:15px;margin:8px 0 4px;
+  background:var(--ink-2);color:var(--paper);font-size:16px;margin:0 0 4px;
 }
+select.txt{appearance:none;-webkit-appearance:none}
 .help{color:var(--muted);font-size:13.5px;line-height:1.6}
-.help ol{padding-left:19px;margin:10px 0}
-.help li{margin-bottom:9px}
-.help code{
-  background:var(--ink-3);padding:2px 6px;border-radius:5px;
-  font-size:12.5px;font-family:ui-monospace,monospace;overflow-wrap:anywhere;
-}
-.help a{color:var(--paper)}
-details{border-top:1px solid var(--hair);padding:13px 0}
-details summary{cursor:pointer;font-weight:600;font-size:14.5px;list-style:none}
-details summary::-webkit-details-marker{display:none}
-details summary::before{content:'+ ';color:var(--muted)}
-details[open] summary::before{content:'– '}
-
-.row{
-  display:flex;align-items:center;gap:11px;padding:11px 0;
-  border-bottom:1px solid var(--hair);font-size:14.5px;
-}
+.row{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--hair);font-size:14.5px}
 .row .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.row .vd{font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:600}
-.vd.keep{color:var(--keep)} .vd.archive{color:var(--archive)}
-.vd.wedding{color:var(--wedding)} .vd.delete{color:var(--danger)}
+.row .nm small{display:block;color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis}
+.row .vd{font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--c,var(--muted))}
 .row .x{color:var(--muted);font-size:19px;padding:0 4px}
+.row .num{font-variant-numeric:tabular-nums}
+.row input[type=checkbox]{width:20px;height:20px;accent-color:var(--label);flex:0 0 auto}
+.psect{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:22px 0 6px}
+.psect:first-child{margin-top:0}
+
+/* Label tray */
+.pins{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pinchip{
+  border:1.5px solid rgba(192,138,46,.55);border-radius:14px;padding:14px 12px;
+  font-size:15px;font-weight:600;color:var(--label);text-align:left;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.pinchip.on{background:var(--label);color:var(--ink);border-color:var(--label)}
+.lrow{display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--hair)}
+.lrow .star{font-size:18px;color:var(--muted);padding:8px 6px;flex:0 0 auto}
+.lrow .star.on{color:var(--label)}
+.lrow .pick{flex:1;min-width:0;display:flex;align-items:center;gap:10px;padding:10px 4px;text-align:left;font-size:15px}
+.lrow .pick .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lrow .pick .ct{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+.lrow .pick .ck{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--hair);display:grid;place-items:center;font-size:13px;color:transparent;flex:0 0 auto}
+.lrow.on .pick .ck{background:var(--label);border-color:var(--label);color:var(--ink)}
+.lrow.create .pick{color:var(--label);font-weight:600}
+
+.bar{height:8px;border-radius:4px;background:var(--ink-3);overflow:hidden;margin:8px 0 4px}
+.bar i{display:block;height:100%;background:var(--keep)}
+.bulkmeta{display:flex;align-items:center;gap:10px;margin:10px 0 2px;font-size:13px;color:var(--muted)}
+.bulkmeta span{flex:1}
 
 #toast{
   position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));
   transform:translateX(-50%);background:var(--paper);color:var(--ink);
   padding:11px 17px;border-radius:11px;font-size:14px;font-weight:500;
-  z-index:60;opacity:0;transition:opacity .2s;pointer-events:none;
+  z-index:90;opacity:0;transition:opacity .2s;pointer-events:none;
   max-width:88vw;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.4);
 }
 #toast.on{opacity:1}
-
-.empty{
-  height:100%;display:flex;flex-direction:column;align-items:center;
-  justify-content:center;text-align:center;padding:40px var(--pad);gap:14px;
-}
+.empty{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px var(--pad);gap:14px}
 .empty h3{font-family:'Fraunces',serif;font-weight:600;font-size:25px;margin:0}
-.empty p{color:var(--muted);font-size:14.5px;margin:0;max-width:300px}
-
-.spin{
-  width:26px;height:26px;border:2.5px solid var(--ink-3);
-  border-top-color:var(--paper);border-radius:50%;
-  animation:sp .8s linear infinite;
-}
+.empty p{color:var(--muted);font-size:14.5px;margin:0;max-width:320px}
+.spin{width:26px;height:26px;border:2.5px solid var(--ink-3);border-top-color:var(--paper);border-radius:50%;animation:sp .8s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
-@media(prefers-reduced-motion:reduce){
-  *{animation-duration:.01ms !important;transition-duration:.01ms !important}
-}
-:focus-visible{outline:2px solid var(--wedding);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important}}
+:focus-visible{outline:2px solid var(--label);outline-offset:2px}
 </style>
 </head>
 <body>
 
-<!-- ============ LEDGER ============ -->
 <div id="ledger" class="hide">
-  <div class="tally left"><span class="n" id="tLeft">0</span><span class="l">Left</span></div>
-  <div class="tally keep"><span class="n" id="tKeep">0</span><span class="l">Keep</span></div>
-  <div class="tally arch"><span class="n" id="tArch">0</span><span class="l">Archive</span></div>
-  <div class="tally wed"><span class="n" id="tWed">0</span><span class="l">Wedding</span></div>
-  <div class="spacer"></div>
+  <div id="tallies"></div>
   <div id="ledgerBtns">
-    <button class="chip" id="btnReview">Review</button>
+    <button class="chip" id="btnMenu" aria-label="Menu and status">☰</button>
     <button class="chip hot" id="btnPush">Push</button>
   </div>
 </div>
 <div id="rail" class="hide"><div id="railFill"></div></div>
 
-<!-- ============ DECK ============ -->
 <div id="deck"></div>
 
-<!-- ============ ACTIONS ============ -->
-<div class="hintline hide" id="hint">Swipe left archive · right keep · up wedding list</div>
-<div id="actions" class="hide">
-  <button class="act a-undo" id="aUndo" title="Undo (U)">↺</button>
-  <button class="act a-arch" id="aArch" title="Archive (←)">✕</button>
-  <button class="act wide a-wed" id="aWed" title="Wedding list (↑)">♥ Wedding</button>
-  <button class="act a-keep" id="aKeep" title="Keep (→)">✓</button>
-  <button class="act a-del" id="aDel" title="Delete forever">🗑</button>
-</div>
+<div class="hintline hide" id="hint"></div>
+<div id="actions" class="hide"></div>
 
-<!-- ============ SETUP ============ -->
-<div class="panel" id="pSetup">
-  <div class="phead"><h2>Contact Audit</h2></div>
-  <div class="pbody">
-    <p class="help" style="margin-top:0">
-      This app talks straight to your Google account from your phone. Nothing is stored
-      anywhere but on this device. To let it in, Google needs you to register it once —
-      about five minutes, then never again.
-    </p>
-
-    <div class="sect" style="color:var(--muted)">Your OAuth Client ID</div>
-    <input class="txt" id="inClientId" placeholder="1234567890-abc123.apps.googleusercontent.com"
-           autocomplete="off" autocapitalize="off" spellcheck="false">
-    <p class="help" style="font-size:12.5px">Ends in <code>.apps.googleusercontent.com</code></p>
-
-    <details open>
-      <summary>How to get that ID</summary>
-      <div class="help">
-        <ol>
-          <li>Open <a href="https://console.cloud.google.com/projectcreate" target="_blank" rel="noopener">Google Cloud Console</a> and create a project. Name it anything.</li>
-          <li>Go to <b>APIs &amp; Services → Library</b>, search <b>People API</b>, press Enable.</li>
-          <li>Go to <b>OAuth consent screen</b>. Pick <b>External</b>, fill in the app name and your own email, and save. On the <b>Audience</b> step, add your own Google address under <b>Test users</b>. Leave it in Testing — you never need to publish or get verified.</li>
-          <li>Go to <b>Credentials → Create credentials → OAuth client ID</b>. Type: <b>Web application</b>.</li>
-          <li>Under <b>Authorized JavaScript origins</b>, add the exact address you'll open this page at — for GitHub Pages that's <code>https://yourname.github.io</code> (no path, no trailing slash). Leave redirect URIs empty.</li>
-          <li>Create it, copy the Client ID, paste it above.</li>
-        </ol>
-      </div>
-    </details>
-
-    <details>
-      <summary>Where to host this file</summary>
-      <div class="help">
-        Google only trusts <code>https://</code> origins, so opening the file from your
-        camera roll won't work. Easiest free option: make a public GitHub repo, upload this
-        file renamed to <code>index.html</code>, then turn on <b>Settings → Pages</b> from
-        the main branch. You'll get a <code>https://yourname.github.io/reponame/</code>
-        address in a minute or two. Open it in Safari or Chrome on your phone and use
-        <b>Add to Home Screen</b> — it then runs full-screen like a normal app.
-      </div>
-    </details>
-
-    <details>
-      <summary>What it can do to your contacts</summary>
-      <div class="help">
-        Nothing until you press Push, and it shows you the full list first. Google Contacts
-        has no true archive, so <b>Archive</b> applies a label called <code>Archived</code> —
-        reversible, and it keeps the contact and their history. <b>Delete</b> is a separate,
-        rarely-needed button and is permanent after 30 days in Google's trash. Notes are
-        written to the contact's Notes field, replacing what was there.
-      </div>
-    </details>
-  </div>
-  <div class="pfoot">
-    <button class="btn" id="btnConnect">Connect Google Contacts</button>
-  </div>
-</div>
-
-<!-- ============ REVIEW ============ -->
-<div class="panel hide" id="pReview">
+<!-- Label tray -->
+<div class="panel hide" id="pTray"><div class="pin">
   <div class="phead">
-    <button class="chip" id="btnCloseReview">Back</button>
-    <h2>Pending</h2>
+    <button class="chip" id="btnTrayCancel">Cancel</button>
+    <h2>Labels<span class="sub" id="traySub"></span></h2>
   </div>
+  <div class="pbody">
+    <input class="txt" id="trayQ" placeholder="Search labels, or type a new one" autocomplete="off" autocapitalize="words" spellcheck="false">
+    <div id="trayBody"></div>
+  </div>
+  <div class="pfoot"><button class="btn" id="btnTrayDone">Done</button></div>
+</div></div>
+
+<!-- Menu / status -->
+<div class="panel hide" id="pMenu"><div class="pin">
+  <div class="phead"><button class="chip" id="btnMenuClose">Back</button><h2>Status</h2></div>
+  <div class="pbody" id="menuBody"></div>
+  <div class="pfoot">
+    <button class="btn ghost" id="btnBulk">Bulk piles</button>
+    <button class="btn ghost" id="btnReview">Review pending</button>
+    <button class="btn ghost" id="btnReload">Reload</button>
+  </div>
+</div></div>
+
+<!-- Bulk piles -->
+<div class="panel hide" id="pBulk"><div class="pin">
+  <div class="phead"><button class="chip" id="btnBulkClose">Back</button><h2>Bulk piles</h2></div>
+  <div class="pbody">
+    <select class="txt" id="bulkPile" aria-label="Pile"></select>
+    <input class="txt" id="bulkQ" placeholder="Filter by name, email, company" autocomplete="off" spellcheck="false">
+    <div class="bulkmeta"><span id="bulkCount"></span><button class="chip" id="btnBulkAll">Select all</button></div>
+    <div id="bulkList"></div>
+  </div>
+  <div class="pfoot" id="bulkFoot"></div>
+</div></div>
+
+<!-- Review -->
+<div class="panel hide" id="pReview"><div class="pin">
+  <div class="phead"><button class="chip" id="btnCloseReview">Back</button><h2>Pending</h2></div>
   <div class="pbody" id="reviewList"></div>
   <div class="pfoot">
     <button class="btn ghost" id="btnClearAll">Clear all</button>
     <button class="btn" id="btnPush2">Push to Google</button>
   </div>
-</div>
+</div></div>
 
-<!-- ============ PUSH ============ -->
-<div class="panel hide" id="pPush">
-  <div class="phead">
-    <button class="chip" id="btnClosePush">Back</button>
-    <h2>Push to Google</h2>
-  </div>
+<!-- Push -->
+<div class="panel hide" id="pPush"><div class="pin">
+  <div class="phead"><button class="chip" id="btnClosePush">Back</button><h2>Push to Google</h2></div>
   <div class="pbody" id="pushBody"></div>
   <div class="pfoot" id="pushFoot"></div>
-</div>
+</div></div>
+
+<!-- Sign in -->
+<div class="panel hide" id="pSign"><div class="pin">
+  <div class="empty">
+    <h3>Contact Audit</h3>
+    <p id="signMsg">Sign in with Google to load your contacts.</p>
+    <button class="btn" id="btnSign" style="flex:0 0 auto;min-width:240px">Sign in with Google</button>
+    <p style="font-size:12px">Nothing changes in Google until you press Push.</p>
+  </div>
+</div></div>
 
 <div id="toast"></div>
 
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
 "use strict";
+const VERSION = 5;
+
+/* ============================================================
+   SETTINGS — the only place you need to edit to change behaviour
+   ============================================================ */
+const CLIENT_ID = "3165219120-p6r9o2kickmg87qpiauenvsab91d609k.apps.googleusercontent.com";
+
+const REVIEWED_LABEL = "Reviewed";   // added to every contact you decide on; this is the app's memory
+const ARCHIVE_LABEL  = "Archived";
+
+// Contacts carrying one of these were sorted before "Reviewed" existed.
+// They are not shown again, and get "Reviewed" on the next push.
+const LEGACY_SORTED_LABELS = ["Archived", "Wedding Guest List"];
+
+// Labels pinned to the top of the label tray the first time the app runs.
+// After that, the stars in the tray decide (saved on each device).
+const DEFAULT_PINS = ["Wedding Guest List", "LBB"];
+
+// Labels the tray never offers, because swipes manage them.
+const TRAY_HIDDEN = [REVIEWED_LABEL, ARCHIVE_LABEL];
+
+const NUDGE_EVERY = 25;              // remind to push after this many unsaved decisions
+
+/* To add an action, add one line here. Nothing else needs to change.
+     id      short name stored with each decision (never rename one in use)
+     name    shown on buttons, stamps and summaries
+     icon    button face
+     color   button, stamp and tally colour
+     swipe   "left" | "right" | "up"   (optional, one action per direction)
+     key     keyboard shortcut          (optional)
+     labels  Google labels this action adds, created if missing (optional)
+     picker  true = opens the label tray instead of acting at once
+     remove  true = deletes the contact on push
+     confirm true = asks before acting
+     wide / small  button shape                                              */
+const ACTIONS = [
+  { id:"archive", name:"Archive", icon:"✕",  color:"#7A6E8F", swipe:"left",  key:"ArrowLeft",  labels:[ARCHIVE_LABEL] },
+  { id:"label",   name:"Label",   icon:"🏷", color:"#C08A2E", swipe:"up",    key:"ArrowUp",    picker:true, wide:true },
+  { id:"keep",    name:"Keep",    icon:"✓",  color:"#2E7D5B", swipe:"right", key:"ArrowRight" },
+  { id:"delete",  name:"Delete",  icon:"🗑", color:"#A63A2A", remove:true, confirm:true, small:true }
+];
 
 /* ============================================================
    Storage — localStorage with in-memory fallback
    ============================================================ */
 const store = (() => {
   let ok = true, mem = {};
-  try { localStorage.setItem("__t","1"); localStorage.removeItem("__t"); }
-  catch(e){ ok = false; }
+  try { localStorage.setItem("__t","1"); localStorage.removeItem("__t"); } catch(e){ ok = false; }
   return {
     get(k){ try { return ok ? localStorage.getItem(k) : (mem[k] ?? null); } catch(e){ return mem[k] ?? null; } },
     set(k,v){ try { ok ? localStorage.setItem(k,v) : (mem[k]=v); } catch(e){ mem[k]=v; } },
@@ -370,167 +343,268 @@ const store = (() => {
   };
 })();
 
-const K_CID = "ca.clientId", K_DEC = "ca.decisions", K_DONE = "ca.done";
+// Same keys as versions 1-4, so nothing sorted on this device is lost.
+const K_DEC = "ca.decisions", K_DONE = "ca.done", K_TOK = "ca.token", K_PINS = "ca.pins";
+
+const SCOPE = "https://www.googleapis.com/auth/contacts";
+const API = "https://people.googleapis.com/v1";
+const FIELDS = "names,emailAddresses,phoneNumbers,photos,organizations,addresses,biographies,memberships,metadata";
+const MY = "contactGroups/myContacts";
 
 /* ============================================================
    State
    ============================================================ */
-const ARCHIVE_LABEL = "Archived";
-const WEDDING_LABEL = "Wedding Guest List";
-const SCOPE = "https://www.googleapis.com/auth/contacts";
-const API = "https://people.googleapis.com/v1";
-const FIELDS = "names,emailAddresses,phoneNumbers,photos,organizations,addresses,biographies,memberships,metadata";
-
-let token = null, tokenClient = null;
-let people = [];            // all contacts
-let queue = [];             // undecided, in order
-let groups = [];            // {resourceName,name}
-let decisions = {};         // pending, not yet sent — resourceName -> decision
-let done = {};              // already pushed — resourceName -> verdict
-let history = [];           // for undo
+let people = [];          // every contact Google returned
+let queue = [];           // not yet sorted, in order
+let catchup = [];         // sorted before "Reviewed" existed; get it on next push
+let groups = [];          // user labels: {resourceName,name}
+let counts = {};          // label resourceName -> number of contacts
+let decisions = {};       // pending, not yet sent: resourceName -> decision
+let done = {};            // legacy record from versions 2-4: resourceName -> verdict
+let history = [];         // for undo: arrays of resourceNames
 let cardEls = [];
+let pins = null;
 
-try { decisions = JSON.parse(store.get(K_DEC) || "{}"); } catch(e){ decisions = {}; }
-try { done = JSON.parse(store.get(K_DONE) || "{}"); } catch(e){ done = {}; }
+try { decisions = JSON.parse(store.get(K_DEC) || "{}") || {}; } catch(e){ decisions = {}; }
+try { done = JSON.parse(store.get(K_DONE) || "{}") || {}; } catch(e){ done = {}; }
+try { pins = JSON.parse(store.get(K_PINS) || "null"); } catch(e){ pins = null; }
+if(!Array.isArray(pins)) pins = DEFAULT_PINS.slice();
 
 const $ = id => document.getElementById(id);
 const saveDecisions = () => store.set(K_DEC, JSON.stringify(decisions));
 const saveDone = () => store.set(K_DONE, JSON.stringify(done));
+const savePins = () => store.set(K_PINS, JSON.stringify(pins));
+const actionById = id => ACTIONS.find(a => a.id === id) || { id, name:id, color:"#7B7389" };
+const labelAction = () => ACTIONS.find(a => a.picker) || { id:"label", name:"Label", color:"#C08A2E" };
+const pendingCount = () => Object.keys(decisions).length;
+
+// Bring decisions saved by versions 1-4 into the current shape.
+(function migrate(){
+  let changed = false;
+  for(const k in decisions){
+    const d = decisions[k];
+    if(!d || typeof d !== "object"){ delete decisions[k]; changed = true; continue; }
+    if(d.verdict === "wedding"){ d.verdict = "label"; d.labels = ["Wedding Guest List"]; changed = true; }
+    if(d.verdict === "archive" && !d.labels){ d.labels = [ARCHIVE_LABEL]; changed = true; }
+    if(d.verdict === "delete" && !d.del){ d.del = true; changed = true; }
+    if(!Array.isArray(d.add)){ d.add = []; changed = true; }
+    if(!Array.isArray(d.remove)){ d.remove = []; changed = true; }
+    if(!Array.isArray(d.labels)){ d.labels = []; changed = true; }
+    if(d.note === undefined){ d.note = null; changed = true; }
+  }
+  if(changed) saveDecisions();
+})();
 
 function toast(msg, ms){
   const t = $("toast");
   t.textContent = msg; t.classList.add("on");
   clearTimeout(t._t);
-  t._t = setTimeout(()=>t.classList.remove("on"), ms || 2200);
+  t._t = setTimeout(() => t.classList.remove("on"), ms || 2200);
 }
+
+const esc = s => String(s == null ? "" : s)
+  .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+  .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
 
 /* ============================================================
-   Auth
+   Sign-in — Google token flow, no backend
    ============================================================ */
-function connect(){
-  const cid = $("inClientId").value.trim();
-  if(!cid.endsWith(".apps.googleusercontent.com")){
-    toast("That doesn't look like a Client ID"); return;
-  }
-  if(!window.google || !google.accounts || !google.accounts.oauth2){
-    toast("Google sign-in didn't load. Check your connection."); return;
-  }
-  store.set(K_CID, cid);
-  $("btnConnect").textContent = "Waiting for Google…";
-  $("btnConnect").disabled = true;
+let token = null, tokenExp = 0, tokenClient = null, pendingAuth = null, signWaiters = [];
 
-  tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: cid,
-    scope: SCOPE,
-    callback: resp => {
-      $("btnConnect").disabled = false;
-      $("btnConnect").textContent = "Connect Google Contacts";
-      if(resp.error){ toast("Google refused: " + resp.error); return; }
-      token = resp.access_token;
-      loadEverything();
-    },
-    error_callback: err => {
-      $("btnConnect").disabled = false;
-      $("btnConnect").textContent = "Connect Google Contacts";
-      toast(err && err.type === "popup_closed" ? "Sign-in cancelled" : "Sign-in failed");
-    }
-  });
-  tokenClient.requestAccessToken({ prompt: "" });
+function loadToken(){
+  try {
+    const t = JSON.parse(store.get(K_TOK) || "null");
+    if(t && t.v && t.exp > Date.now() + 60000){ token = t.v; tokenExp = t.exp; return true; }
+  } catch(e){}
+  return false;
 }
 
-function reauth(){
+function ensureClient(){
+  if(tokenClient) return true;
+  if(!(window.google && google.accounts && google.accounts.oauth2)) return false;
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPE,
+    callback: resp => {
+      const p = pendingAuth; pendingAuth = null;
+      if(resp.error){ if(p) p.rej(new Error("Google refused: " + resp.error)); return; }
+      token = resp.access_token;
+      tokenExp = Date.now() + (Number(resp.expires_in) || 3600) * 1000;
+      store.set(K_TOK, JSON.stringify({ v: token, exp: tokenExp }));
+      if(p) p.res();
+    },
+    error_callback: err => {
+      const p = pendingAuth; pendingAuth = null;
+      const t = err && err.type;
+      if(p) p.rej(new Error(t === "popup_closed" ? "Sign-in cancelled"
+                          : t === "popup_failed_to_open" ? "The sign-in window was blocked. Tap the button again."
+                          : "Sign-in failed"));
+    }
+  });
+  return true;
+}
+
+// Must run inside a tap, or the browser blocks the Google window.
+function requestToken(){
   return new Promise((res, rej) => {
-    if(!tokenClient) return rej(new Error("no client"));
-    tokenClient.callback = r => r.error ? rej(new Error(r.error)) : (token = r.access_token, res());
+    if(!ensureClient()) return rej(new Error("Google sign-in hasn't loaded yet. Check your connection and try again."));
+    pendingAuth = { res, rej };
     tokenClient.requestAccessToken({ prompt: "" });
   });
 }
 
-/* ============================================================
-   API helper — retries once on expired token
-   ============================================================ */
-async function api(path, opts, retried){
-  opts = opts || {};
-  const r = await fetch(path.startsWith("http") ? path : API + path, {
-    method: opts.method || "GET",
-    headers: Object.assign({ Authorization: "Bearer " + token },
-      opts.body ? { "Content-Type": "application/json" } : {}),
-    body: opts.body ? JSON.stringify(opts.body) : undefined
+// Shows the sign-in screen and resolves once the user has signed in.
+function needSignIn(msg){
+  return new Promise(res => {
+    signWaiters.push(res);
+    $("signMsg").textContent = msg;
+    $("pSign").classList.remove("hide");
   });
-  if(r.status === 401 && !retried){ await reauth(); return api(path, opts, true); }
-  if(r.status === 429 || r.status === 503){
-    await new Promise(s => setTimeout(s, 1600));
-    if(!retried) return api(path, opts, true);
+}
+
+$("btnSign").onclick = async () => {
+  const b = $("btnSign");
+  b.disabled = true; b.textContent = "Waiting for Google…";
+  try {
+    await requestToken();
+    $("pSign").classList.add("hide");
+    const w = signWaiters; signWaiters = [];
+    w.forEach(f => f());
+  } catch(e){ toast(e.message, 3500); }
+  b.disabled = false; b.textContent = "Sign in with Google";
+};
+
+/* ============================================================
+   API helper — signs in again when the session ends, waits out rate limits
+   ============================================================ */
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+let onWait = null;   // lets the push screen say why it's pausing
+
+/* Google's write cap is per MINUTE, so the later waits are deliberately long —
+   a two-second retry just burns another request. */
+const BACKOFF = [3000, 10000, 25000, 45000, 65000];
+const PACE_WRITE = 1200, PACE_NOTE = 300;
+const TIMED_OUT = "Your Google session timed out. Sign in again to keep going — nothing is lost.";
+
+async function api(path, opts, attempt, authTries){
+  opts = opts || {}; attempt = attempt || 0; authTries = authTries || 0;
+
+  if(!token) await needSignIn("Sign in with Google to load your contacts.");
+  else if(Date.now() > tokenExp - 10000) await needSignIn(TIMED_OUT);
+
+  let r;
+  try {
+    r = await fetch(path.startsWith("http") ? path : API + path, {
+      method: opts.method || "GET",
+      headers: Object.assign({ Authorization: "Bearer " + token },
+        opts.body ? { "Content-Type": "application/json" } : {}),
+      body: opts.body ? JSON.stringify(opts.body) : undefined
+    });
+  } catch(e){
+    const err = new Error("Couldn't reach Google. Check your connection.");
+    err.network = true; throw err;
   }
-  if(!r.ok){
-    let msg = r.status + "";
-    try { const j = await r.json(); msg = (j.error && j.error.message) || msg; } catch(e){}
-    throw new Error(msg);
+
+  if(r.ok){
+    const t = await r.text();
+    try { return t ? JSON.parse(t) : {}; } catch(e){ return {}; }
   }
-  return r.status === 204 ? {} : r.json();
+
+  let msg = "HTTP " + r.status;
+  try { const j = await r.json(); msg = (j.error && j.error.message) || msg; } catch(e){}
+
+  if(r.status === 401 && authTries < 2){
+    token = null; store.del(K_TOK);
+    await needSignIn(TIMED_OUT);
+    return api(path, opts, attempt, authTries + 1);
+  }
+
+  const throttled = r.status === 429 || r.status === 503 ||
+                    (r.status === 403 && /quota|rate limit|exhaust/i.test(msg));
+  if(throttled && attempt < BACKOFF.length){
+    const wait = BACKOFF[attempt];
+    if(onWait) onWait(Math.round(wait/1000));
+    await sleep(wait);
+    return api(path, opts, attempt + 1, authTries);
+  }
+
+  const err = new Error(throttled ? "Google's write limit — try pushing again in a minute" : msg);
+  err.status = r.status;
+  throw err;
 }
 
 /* ============================================================
    Load
    ============================================================ */
 function loadingScreen(text){
-  $("pSetup").classList.add("hide");
-  $("deck").innerHTML =
-    '<div class="empty"><div class="spin"></div><p id="loadMsg">' + text + '</p></div>';
+  $("deck").innerHTML = '<div class="empty"><div class="spin"></div><p id="loadMsg">' + esc(text) + '</p></div>';
+  $("actions").classList.add("hide"); $("hint").classList.add("hide");
 }
+
+const byName = (a, b) => a.name.localeCompare(b.name, undefined, { sensitivity:"base" });
 
 async function loadEverything(){
   loadingScreen("Reading your contacts…");
   try {
-    const g = await api("/contactGroups?pageSize=200");
-    groups = (g.contactGroups || []).filter(x => x.groupType === "USER_CONTACT_GROUP");
+    const g = await api("/contactGroups?pageSize=1000");
+    groups = (g.contactGroups || [])
+      .filter(x => x.groupType === "USER_CONTACT_GROUP")
+      .map(x => ({ resourceName: x.resourceName, name: x.name || x.formattedName || "Untitled" }))
+      .sort(byName);
 
-    people = [];
+    const all = [];
     let pageToken = "";
     do {
-      const url = "/people/me/connections?pageSize=1000&personFields=" + FIELDS +
-                  "&sortOrder=FIRST_NAME_ASCENDING" + (pageToken ? "&pageToken=" + pageToken : "");
-      const d = await api(url);
-      people = people.concat(d.connections || []);
+      const d = await api("/people/me/connections?pageSize=1000&personFields=" + FIELDS +
+                          "&sortOrder=FIRST_NAME_ASCENDING" +
+                          (pageToken ? "&pageToken=" + encodeURIComponent(pageToken) : ""));
+      (d.connections || []).forEach(p => all.push(p));
       pageToken = d.nextPageToken || "";
-      const m = $("loadMsg"); if(m) m.textContent = "Read " + people.length + " contacts…";
+      const m = $("loadMsg"); if(m) m.textContent = "Read " + all.length + " contacts…";
     } while(pageToken);
 
+    people = all;
+    counts = {};
+    people.forEach(p => {
+      p._g = new Set((p.memberships || [])
+        .filter(m => m.contactGroupMembership)
+        .map(m => m.contactGroupMembership.contactGroupResourceName)
+        .filter(Boolean));
+      p._g.forEach(id => { counts[id] = (counts[id] || 0) + 1; });
+    });
+
     if(!people.length){
-      $("deck").innerHTML = '<div class="empty"><h3>No contacts</h3>' +
-        '<p>This Google account has an empty address book.</p></div>';
+      $("deck").innerHTML = '<div class="empty"><h3>No contacts</h3><p>This Google account has an empty address book.</p></div>';
       return;
     }
     startDeck();
   } catch(e){
-    $("deck").innerHTML = '<div class="empty"><h3>Couldn\'t load</h3><p>' +
-      esc(e.message) + '</p></div>';
-    $("pSetup").classList.remove("hide");
-    $("btnConnect").disabled = false;
-    $("btnConnect").textContent = "Try again";
+    $("deck").innerHTML = '<div class="empty"><h3>Couldn\'t load</h3><p>' + esc(e.message) +
+      '</p><button class="chip hot" id="btnRetryLoad">Try again</button></div>';
+    $("btnRetryLoad").onclick = loadEverything;
   }
 }
 
 /* ============================================================
    Contact accessors
    ============================================================ */
-const esc = s => String(s == null ? "" : s)
-  .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
-  .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
-
 const nameOf = p => (p.names && p.names[0] && p.names[0].displayName) ||
+                    (p.organizations && p.organizations[0] && p.organizations[0].name) ||
                     (p.emailAddresses && p.emailAddresses[0] && p.emailAddresses[0].value) ||
                     (p.phoneNumbers && p.phoneNumbers[0] && p.phoneNumbers[0].value) ||
                     "Unnamed contact";
-
+const hasName  = p => !!(p.names && p.names[0] && p.names[0].displayName);
+const hasPhone = p => !!(p.phoneNumbers && p.phoneNumbers.length);
+const hasEmail = p => !!(p.emailAddresses && p.emailAddresses.length);
 const bioOf = p => (p.biographies && p.biographies[0] && p.biographies[0].value) || "";
 
-function groupsOf(p){
-  return (p.memberships || [])
-    .filter(m => m.contactGroupMembership)
-    .map(m => m.contactGroupMembership.contactGroupResourceName)
-    .filter(Boolean);
-}
+const gid = name => {
+  const g = groups.find(x => x.name.toLowerCase() === String(name).toLowerCase());
+  return g ? g.resourceName : null;
+};
+const hiddenIds = () => new Set(TRAY_HIDDEN.map(gid).filter(Boolean));
+const trayGroups = () => { const h = hiddenIds(); return groups.filter(g => !h.has(g.resourceName)); };
+const userLabelsOf = p => trayGroups().filter(g => p._g.has(g.resourceName));
 
 function initials(n){
   const parts = n.trim().split(/\s+/).filter(w => /[a-z0-9]/i.test(w));
@@ -541,41 +615,42 @@ function initials(n){
 /* ============================================================
    Deck
    ============================================================ */
-// A contact already carrying the Archived or Wedding label was sorted at some
-// point — even on another device — so don't serve it again.
-function seenViaLabel(p){
-  const mine = new Set(groupsOf(p));
-  return groups.some(g =>
-    (g.name === ARCHIVE_LABEL || g.name === WEDDING_LABEL) && mine.has(g.resourceName));
+// Who still needs a decision. Google's "Reviewed" label is the memory, so this
+// gives the same answer on every device.
+function computeQueues(){
+  const rev = gid(REVIEWED_LABEL);
+  const legacy = LEGACY_SORTED_LABELS.map(gid).filter(Boolean);
+  queue = []; catchup = [];
+  people.forEach(p => {
+    const id = p.resourceName;
+    if(p._gone) return;
+    if(rev && p._g.has(rev)) return;
+    if(decisions[id]) return;
+    if(done[id] || legacy.some(g => p._g.has(g))) catchup.push(p);
+    else queue.push(p);
+  });
 }
 
 function startDeck(){
-  queue = people.filter(p =>
-    !decisions[p.resourceName] && !done[p.resourceName] && !seenViaLabel(p));
+  computeQueues();
   $("ledger").classList.remove("hide");
   $("rail").classList.remove("hide");
-  $("actions").classList.remove("hide");
-  $("hint").classList.remove("hide");
   render();
 }
 
 function updateLedger(){
-  let k=0,a=0,w=0,d=0;
-  const count = v => {
-    if(v==="keep")k++; else if(v==="archive")a++;
-    else if(v==="wedding")w++; else if(v==="delete")d++;
-  };
-  for(const key in done) count(done[key]);
-  for(const key in decisions) count(decisions[key].verdict);
-  $("tKeep").textContent = k;
-  $("tArch").textContent = a + (d ? "+" + d : "");
-  $("tWed").textContent = w;
-  $("tLeft").textContent = queue.length;
-  const sorted = people.length - queue.length;
-  $("railFill").style.width = people.length ? (sorted/people.length*100) + "%" : "0";
-  const n = k+a+w+d;
+  const by = {};
+  for(const k in decisions){ const v = decisions[k].verdict; by[v] = (by[v] || 0) + 1; }
+  let h = '<div class="tally"><span class="n">' + queue.length + '</span><span class="l">Left</span></div>';
+  ACTIONS.forEach(a => {
+    if(a.remove && !by[a.id]) return;
+    h += '<div class="tally" style="--c:' + a.color + '"><span class="n">' + (by[a.id] || 0) +
+         '</span><span class="l">' + esc(a.name) + '</span></div>';
+  });
+  $("tallies").innerHTML = h;
+  $("railFill").style.width = people.length ? ((people.length - queue.length) / people.length * 100) + "%" : "0";
+  const n = pendingCount() + catchup.length;
   $("btnPush").disabled = !n;
-  $("btnReview").disabled = !n;
   $("btnPush").textContent = n ? "Push " + n : "Push";
 }
 
@@ -584,35 +659,29 @@ function render(){
   const deck = $("deck");
 
   if(!queue.length){
-    const pending = Object.keys(decisions).length;
-    deck.innerHTML = '<div class="empty"><h3>' +
-      (pending ? "Nothing left to sort" : "All caught up") + '</h3><p>' +
-      (pending
-        ? pending + " decision" + (pending>1?"s":"") + " waiting to go to Google."
-        : "Every one of your " + people.length + " contacts has been sorted and pushed.") +
-      '</p>' +
-      (pending ? '<button class="chip hot" id="emptyReview">Review pending</button>' : "") +
-      '<button class="chip" id="emptyRedo">Sort everyone again</button></div>';
-    const r = $("emptyReview"); if(r) r.onclick = openReview;
-    $("emptyRedo").onclick = reAudit;
-    $("actions").classList.add("hide");
-    $("hint").classList.add("hide");
+    const pending = pendingCount();
+    deck.innerHTML = '<div class="empty"><h3>' + (pending ? "Nothing left to sort" : "All caught up") + '</h3><p>' +
+      (pending ? pending + " decision" + (pending > 1 ? "s" : "") + " waiting to go to Google."
+               : catchup.length ? catchup.length + " contacts sorted earlier still need the Reviewed label. Press Push."
+               : "Every one of your " + people.length + " contacts has been reviewed.") +
+      '</p>' + (pending ? '<button class="chip hot" id="emptyPush">Push to Google</button>' : "") + '</div>';
+    const r = $("emptyPush"); if(r) r.onclick = openPush;
+    $("actions").classList.add("hide"); $("hint").classList.add("hide");
+    cardEls = [];
     return;
   }
-  $("actions").classList.remove("hide");
-  $("hint").classList.remove("hide");
+  $("actions").classList.remove("hide"); $("hint").classList.remove("hide");
 
   deck.innerHTML = "";
   cardEls = [];
-  const slice = queue.slice(0, 3).reverse();   // furthest painted first
-  slice.forEach(p => {
+  queue.slice(0, 3).reverse().forEach(p => {   // furthest painted first
     const el = buildCard(p);
     deck.appendChild(el);
     cardEls.unshift(el);
   });
-  cardEls.forEach((el,i) => {
-    if(i===1) el.classList.add("behind");
-    if(i===2) el.classList.add("behind2");
+  cardEls.forEach((el, i) => {
+    if(i === 1) el.classList.add("behind");
+    if(i === 2) el.classList.add("behind2");
   });
   if(cardEls[0]) attachSwipe(cardEls[0], queue[0]);
 }
@@ -620,108 +689,70 @@ function render(){
 function buildCard(p){
   const el = document.createElement("div");
   el.className = "card";
+  el.dataset.rn = p.resourceName;
   const nm = nameOf(p);
   const photo = p.photos && p.photos.find(x => !x.default);
   const org = p.organizations && p.organizations[0];
   const orgTxt = org ? [org.title, org.name].filter(Boolean).join(" · ") : "";
-  const mine = groupsOf(p);
 
   let f = "";
-  (p.emailAddresses||[]).slice(0,3).forEach(e => {
-    f += '<div class="field"><span class="k">' + esc(e.type||"email") +
-         '</span><a href="mailto:'+esc(e.value)+'">' + esc(e.value) + '</a></div>';
+  (p.emailAddresses || []).slice(0,3).forEach(e => {
+    f += '<div class="field"><span class="k">' + esc(e.type || "email") +
+         '</span><a href="mailto:' + esc(e.value) + '">' + esc(e.value) + '</a></div>';
   });
-  (p.phoneNumbers||[]).slice(0,3).forEach(e => {
-    f += '<div class="field"><span class="k">' + esc(e.type||"phone") +
-         '</span><a href="tel:'+esc(e.value)+'">' + esc(e.value) + '</a></div>';
+  (p.phoneNumbers || []).slice(0,3).forEach(e => {
+    f += '<div class="field"><span class="k">' + esc(e.type || "phone") +
+         '</span><a href="tel:' + esc(e.value) + '">' + esc(e.value) + '</a></div>';
   });
-  (p.addresses||[]).slice(0,2).forEach(e => {
-    f += '<div class="field"><span class="k">' + esc(e.type||"address") +
-         '</span><span>' + esc(e.formattedValue||"") + '</span></div>';
+  (p.addresses || []).slice(0,2).forEach(e => {
+    f += '<div class="field"><span class="k">' + esc(e.type || "address") +
+         '</span><span>' + esc(e.formattedValue || "") + '</span></div>';
   });
   if(!f) f = '<div class="field"><span class="k">Empty</span>' +
              '<span style="color:var(--muted)">No email, phone, or address on file</span></div>';
 
-  const labs = labelChipsHTML(new Set(mine));
+  const mine = userLabelsOf(p);
+  const labs = (mine.length
+      ? mine.map(g => '<span class="lab on">' + esc(g.name) + '</span>').join("")
+      : '<span class="nolab">None yet</span>') +
+    '<button class="lab addlab" data-open="tray">Edit labels</button>';
 
   el.innerHTML =
-    '<div class="stamp s-arch">Archive</div>' +
-    '<div class="stamp s-keep">Keep</div>' +
-    '<div class="stamp s-wed">Wedding list</div>' +
+    ACTIONS.filter(a => a.swipe).map(a =>
+      '<div class="stamp s-' + a.swipe + '" style="color:' + a.color + '">' + esc(a.name) + '</div>').join("") +
     '<div class="cbody">' +
       (photo
         ? '<img class="avatar" src="' + esc(photo.url) + '" alt="" referrerpolicy="no-referrer">'
         : '<div class="avatar">' + esc(initials(nm)) + '</div>') +
       '<h1 class="cname">' + esc(nm) + '</h1>' +
-      (orgTxt ? '<div class="corg">' + esc(orgTxt) + '</div>' : '<div style="height:8px"></div>') +
+      (orgTxt && orgTxt !== nm ? '<div class="corg">' + esc(orgTxt) + '</div>' : '<div style="height:8px"></div>') +
+      (p._g.has(MY) ? "" : '<div class="flag">Not in your main Contacts list</div>') +
       f +
-      '<div class="sect">Labels — tap to toggle</div><div class="labels">' + labs + '</div>' +
+      '<div class="sect">Labels</div><div class="labels">' + labs + '</div>' +
       '<div class="sect">Note</div>' +
       '<textarea class="note" placeholder="Add a note…">' + esc(bioOf(p)) + '</textarea>' +
     '</div>';
 
-  wireLabels(el);
+  el.querySelector('[data-open="tray"]').onclick = ev => { ev.stopPropagation(); openTray({ mode:"card", person:p }); };
   el.querySelector(".note").addEventListener("pointerdown", ev => ev.stopPropagation());
   return el;
 }
 
-/* ---------- Labels ---------- */
-function labelChipsHTML(onSet){
-  return groups.map(g =>
-    '<button class="lab' + (onSet.has(g.resourceName) ? ' on' : '') +
-    '" data-g="' + esc(g.resourceName) + '">' + esc(g.name) + '</button>').join("") +
-    '<button class="lab addlab">+ New label</button>';
-}
-
-function onChips(box){
-  return new Set(Array.from(box.querySelectorAll(".lab.on"))
-    .map(x => x.dataset.g).filter(Boolean));
-}
-
-function wireLabels(el){
-  const box = el.querySelector(".labels");
-  box.querySelectorAll(".lab").forEach(b => {
-    b.onclick = async ev => {
-      ev.stopPropagation();
-      if(!b.classList.contains("addlab")){ b.classList.toggle("on"); return; }
-
-      const name = (prompt("Name the new label") || "").trim();
-      if(!name) return;
-
-      const on = onChips(box);
-      const dup = groups.find(g => g.name.toLowerCase() === name.toLowerCase());
-      if(dup){
-        on.add(dup.resourceName);
-        box.innerHTML = labelChipsHTML(on); wireLabels(el);
-        toast("You already had that label — turned it on");
-        return;
-      }
-      b.textContent = "Creating…"; b.disabled = true;
-      try {
-        const id = await ensureGroup(name);   // creates it in Google right away
-        on.add(id);
-        box.innerHTML = labelChipsHTML(on); wireLabels(el);
-        toast("Created " + name);
-      } catch(e){
-        b.textContent = "+ New label"; b.disabled = false;
-        toast("Couldn't create it: " + e.message);
-      }
-    };
-  });
-}
-
 /* ---------- Swipe ---------- */
+const swipeAction = dir => ACTIONS.find(a => a.swipe === dir);
+
 function attachSwipe(el, person){
-  let sx=0, sy=0, dx=0, dy=0, active=false, decided=false;
+  let sx = 0, sy = 0, dx = 0, dy = 0, active = false, decided = false;
   const body = el.querySelector(".cbody");
-  const sA = el.querySelector(".s-arch"), sK = el.querySelector(".s-keep"), sW = el.querySelector(".s-wed");
+  const sL = el.querySelector(".s-left"), sR = el.querySelector(".s-right"), sU = el.querySelector(".s-up");
+  const op = (n, v) => { if(n) n.style.opacity = v; };
 
   el.addEventListener("pointerdown", e => {
-    if(e.target.closest("textarea,a,.lab")) return;
+    if(e.target.closest("textarea,a,button")) return;
     if(decided) return;
     active = true; sx = e.clientX; sy = e.clientY; dx = dy = 0;
     el.classList.remove("settle");
-    el.setPointerCapture(e.pointerId);
+    try { el.setPointerCapture(e.pointerId); } catch(err){}
   });
 
   el.addEventListener("pointermove", e => {
@@ -731,88 +762,321 @@ function attachSwipe(el, person){
     if(Math.abs(dy) > Math.abs(dx) && dy > 0 && body.scrollTop > 0){ active = false; reset(); return; }
     el.style.transform = "translate(" + dx + "px," + dy + "px) rotate(" + (dx/22) + "deg)";
     const up = dy < -60 && Math.abs(dy) > Math.abs(dx);
-    sW.style.opacity = up ? Math.min(1, (-dy-60)/60) : 0;
-    sA.style.opacity = up ? 0 : Math.max(0, Math.min(1, -dx/95));
-    sK.style.opacity = up ? 0 : Math.max(0, Math.min(1,  dx/95));
+    op(sU, up ? Math.min(1, (-dy-60)/60) : 0);
+    op(sL, up ? 0 : Math.max(0, Math.min(1, -dx/95)));
+    op(sR, up ? 0 : Math.max(0, Math.min(1,  dx/95)));
   });
 
-  const finish = () => {
-    if(!active) return;
-    active = false;
-    const up = dy < -110 && Math.abs(dy) > Math.abs(dx);
-    if(up)               { decided = true; fly(el,  0, -900); commit(person, el, "wedding"); }
-    else if(dx < -105)   { decided = true; fly(el, -800, dy); commit(person, el, "archive"); }
-    else if(dx >  105)   { decided = true; fly(el,  800, dy); commit(person, el, "keep"); }
-    else reset();
-  };
   const reset = () => {
     el.classList.add("settle");
     el.style.transform = "";
-    sA.style.opacity = sK.style.opacity = sW.style.opacity = 0;
+    op(sL, 0); op(sR, 0); op(sU, 0);
+  };
+  const finish = () => {
+    if(!active) return;
+    active = false;
+    const dir = (dy < -110 && Math.abs(dy) > Math.abs(dx)) ? "up" : dx < -105 ? "left" : dx > 105 ? "right" : null;
+    const a = dir && swipeAction(dir);
+    if(!a){ reset(); return; }
+    if(a.picker || a.confirm){ reset(); trigger(a); return; }   // needs a second step, so the card stays
+    decided = true;
+    flyFor(el, a, dy);
+    commit(person, el, a, null);
   };
   el.addEventListener("pointerup", finish);
   el.addEventListener("pointercancel", () => { active = false; reset(); });
 }
 
-function fly(el, x, y){
+function flyFor(el, a, dy){
+  if(!el) return;
+  const x = a.swipe === "left" ? -800 : a.swipe === "right" ? 800 : 0;
+  const y = a.swipe === "up" ? -900 : (a.swipe ? (dy || 0) : 700);
   el.classList.add("fly");
   el.style.transform = "translate(" + x + "px," + y + "px) rotate(" + (x/22) + "deg)";
   el.style.opacity = "0";
 }
 
-/* ---------- Commit ---------- */
-function commit(person, el, verdict){
-  const before = groupsOf(person);
-  const after = el ? Array.from(el.querySelectorAll(".lab.on")).map(b => b.dataset.g) : before;
-  const noteEl = el ? el.querySelector(".note") : null;
-  const newNote = noteEl ? noteEl.value.trim() : bioOf(person);
-
-  decisions[person.resourceName] = {
-    verdict,
+/* ---------- Deciding ---------- */
+function makeDecision(person, a, extra){
+  return Object.assign({
+    verdict: a.id,
     name: nameOf(person),
     etag: person.etag,
-    note: newNote !== bioOf(person) ? newNote : null,
-    add: after.filter(g => !before.includes(g)),
-    remove: before.filter(g => !after.includes(g))
-  };
+    note: null,
+    add: [], remove: [],
+    labels: (a.labels || []).slice(),
+    del: !!a.remove
+  }, extra || {});
+}
+
+function afterDecide(before){
   saveDecisions();
-  history.push(person.resourceName);
-  queue = queue.filter(p => p.resourceName !== person.resourceName);
+  const n = pendingCount();
+  if(Math.floor(n / NUDGE_EVERY) > Math.floor(before / NUDGE_EVERY)){
+    toast(n + " decisions not saved to Google yet — tap Push", 4200);
+    const b = $("btnPush"); b.classList.remove("nudge"); void b.offsetWidth; b.classList.add("nudge");
+  }
+}
+
+// The card on screen for this person, or null if the deck hasn't redrawn yet
+// (fast taps). Stops one contact's note box being read for the next contact.
+const topEl = p => (cardEls[0] && cardEls[0].dataset.rn === p.resourceName) ? cardEls[0] : null;
+
+// One card. `sel` is the set of label ids chosen in the tray, or null.
+function commit(person, el, a, sel){
+  const before = pendingCount();
+  const extra = {};
+  if(sel){
+    const had = new Set(userLabelsOf(person).map(g => g.resourceName));
+    extra.add = [...sel].filter(g => !had.has(g));
+    extra.remove = [...had].filter(g => !sel.has(g));
+  }
+  const noteEl = el ? el.querySelector(".note") : null;
+  if(noteEl){
+    const v = noteEl.value.trim();
+    if(v !== bioOf(person).trim()) extra.note = v;
+  }
+  decisions[person.resourceName] = makeDecision(person, a, extra);
+  history.push([person.resourceName]);
+  afterDecide(before);
+  computeQueues();
   setTimeout(render, 190);
 }
 
-function actNow(verdict){
-  if(!queue.length) return;
-  const p = queue[0], el = cardEls[0];
-  if(el){
-    if(verdict === "wedding") fly(el, 0, -900);
-    else if(verdict === "keep") fly(el, 800, 0);
-    else fly(el, -800, 0);
-  }
-  commit(p, el, verdict);
+// Many contacts at once, from Bulk piles.
+function commitMany(list, a, addIds){
+  if(!list.length) return;
+  const before = pendingCount();
+  list.forEach(p => { decisions[p.resourceName] = makeDecision(p, a, addIds ? { add:
+    addIds.filter(g => !p._g.has(g)) } : null); });
+  history.push(list.map(p => p.resourceName));
+  afterDecide(before);
+  computeQueues();
+  render();
 }
 
-// Wipe the local record of what's been sorted so every contact comes back.
-// Labels already applied in Google stay put — this only forgets, it never undoes.
-function reAudit(){
-  if(!confirm("Sort all " + people.length + " contacts again from the start?\n\n" +
-              "Labels already in Google stay as they are. This only clears what this " +
-              "app remembers having shown you.")) return;
-  done = {}; history = []; saveDone();
-  queue = people.filter(p => !decisions[p.resourceName]);
-  render();
-  toast("Starting over");
+// Button, key, or a swipe that needs a second step.
+function trigger(a){
+  if(!queue.length) return;
+  const p = queue[0], el = topEl(p);
+  if(a.picker){ openTray({ mode:"card", person:p }); return; }
+  if(a.confirm && !confirm(a.name + " " + nameOf(p) + "?\n\n" +
+      (a.remove ? "Goes to Google's trash when you press Push. Google empties the trash after 30 days."
+                : "Applied when you press Push."))) return;
+  flyFor(el, a, 0);
+  commit(p, el, a, null);
 }
 
 function undo(){
-  const id = history.pop();
-  if(!id){ toast("Nothing to undo"); return; }
-  delete decisions[id];
+  const ids = history.pop();
+  if(!ids){ toast("Nothing to undo"); return; }
+  ids.forEach(id => delete decisions[id]);
   saveDecisions();
-  const p = people.find(x => x.resourceName === id);
-  if(p) queue.unshift(p);
+  computeQueues();
   render();
-  toast("Undone");
+  toast(ids.length > 1 ? "Undid " + ids.length + " decisions" : "Undone");
+}
+
+/* ============================================================
+   Label tray — pinned labels, every Google label, and new ones
+   ============================================================ */
+let tray = null;   // { mode:"card"|"bulk", person, list, sel:Set }
+
+function openTray(t){
+  tray = t;
+  tray.sel = new Set(t.mode === "card" ? userLabelsOf(t.person).map(g => g.resourceName) : []);
+  $("traySub").textContent = t.mode === "card" ? nameOf(t.person)
+    : t.list.length + " contact" + (t.list.length > 1 ? "s" : "") + " — labels are added, none removed";
+  $("trayQ").value = "";
+  renderTray();
+  $("pTray").classList.remove("hide");
+}
+function closeTray(){ $("pTray").classList.add("hide"); tray = null; }
+
+function renderTray(){
+  if(!tray) return;
+  const q = $("trayQ").value.trim();
+  const ql = q.toLowerCase();
+  const all = trayGroups();
+  const match = g => !ql || g.name.toLowerCase().includes(ql);
+  const pinSet = new Set(pins.map(n => n.toLowerCase()));
+  const pinned = all.filter(g => pinSet.has(g.name.toLowerCase()) && match(g));
+  const rest = all.filter(match);
+
+  let h = "";
+  if(pinned.length){
+    h += '<div class="psect">Pinned</div><div class="pins">' + pinned.map(g =>
+      '<button class="pinchip' + (tray.sel.has(g.resourceName) ? " on" : "") + '" data-g="' + esc(g.resourceName) + '">' +
+      (tray.sel.has(g.resourceName) ? "✓ " : "") + esc(g.name) + '</button>').join("") + '</div>';
+  }
+  h += '<div class="psect">' + (ql ? "Matching labels" : "All labels") + '</div>';
+  if(q && !groups.some(g => g.name.toLowerCase() === ql)){
+    h += '<div class="lrow create"><button class="pick" id="trayCreate"><span class="nm">+ Create “' + esc(q) +
+         '”</span></button></div>';
+  }
+  h += rest.map(g => {
+    const on = tray.sel.has(g.resourceName), pin = pinSet.has(g.name.toLowerCase());
+    return '<div class="lrow' + (on ? " on" : "") + '">' +
+      '<button class="star' + (pin ? " on" : "") + '" data-pin="' + esc(g.name) + '" aria-label="' +
+        (pin ? "Unpin " : "Pin ") + esc(g.name) + '">' + (pin ? "★" : "☆") + '</button>' +
+      '<button class="pick" data-g="' + esc(g.resourceName) + '"><span class="nm">' + esc(g.name) + '</span>' +
+      '<span class="ct">' + (counts[g.resourceName] || 0) + '</span><span class="ck">✓</span></button></div>';
+  }).join("");
+  if(!rest.length && !q) h += '<p class="help">No labels yet. Type a name above to create one.</p>';
+  $("trayBody").innerHTML = h;
+
+  $("trayBody").querySelectorAll("[data-g]").forEach(b => b.onclick = () => {
+    const id = b.dataset.g;
+    tray.sel.has(id) ? tray.sel.delete(id) : tray.sel.add(id);
+    renderTray();
+  });
+  $("trayBody").querySelectorAll("[data-pin]").forEach(b => b.onclick = () => {
+    const n = b.dataset.pin, i = pins.findIndex(x => x.toLowerCase() === n.toLowerCase());
+    if(i >= 0) pins.splice(i, 1); else pins.push(n);
+    savePins(); renderTray();
+  });
+  const c = $("trayCreate");
+  if(c) c.onclick = async () => {
+    c.disabled = true; c.querySelector(".nm").textContent = "Creating…";
+    try {
+      const id = await ensureGroup(q);        // saved to Google right away
+      tray.sel.add(id);
+      $("trayQ").value = "";
+      toast("Created " + q);
+    } catch(e){ toast("Couldn't create it: " + e.message, 3500); }
+    renderTray();
+  };
+}
+
+function trayDone(){
+  if(!tray) return;
+  const t = tray, a = labelAction();
+  if(t.mode === "bulk"){
+    if(!t.sel.size){ toast("Pick at least one label"); return; }
+    closeTray();
+    commitMany(t.list, a, [...t.sel]);
+    bulkSel.clear(); renderBulk();
+    toast(t.list.length + " marked " + a.name + " — press Push to save");
+    return;
+  }
+  closeTray();
+  const el = topEl(t.person);
+  flyFor(el, a, 0);
+  commit(t.person, el, a, t.sel);
+}
+
+/* ============================================================
+   Status
+   ============================================================ */
+function openMenu(){
+  const rev = gid(REVIEWED_LABEL), arc = gid(ARCHIVE_LABEL);
+  let main = 0;
+  people.forEach(p => { if(p._g.has(MY)) main++; });
+  const total = people.length, sorted = total - queue.length;
+  const line = (t, n, c) => '<div class="row"><span class="nm"' + (c ? ' style="color:' + c + '"' : "") + '>' + t +
+                            '</span><span class="num">' + n + '</span></div>';
+  $("menuBody").innerHTML =
+    '<div class="psect">Progress</div>' +
+    '<div class="bar"><i style="width:' + (total ? sorted / total * 100 : 0) + '%"></i></div>' +
+    '<p class="help" style="margin:0 0 6px">' + sorted + ' of ' + total + ' sorted · ' + queue.length + ' left</p>' +
+    line("Left to sort", queue.length) +
+    line("Decided here, not pushed yet", pendingCount(), "var(--label)") +
+    line("Sorted earlier, waiting for Reviewed", catchup.length) +
+    line("Reviewed in Google", rev ? (counts[rev] || 0) : 0, "var(--keep)") +
+    line("Archived in Google", arc ? (counts[arc] || 0) : 0, "var(--archive)") +
+    '<div class="psect">Where they live</div>' +
+    line("All contacts Google returned", total) +
+    line("In your main Contacts list", main) +
+    line("Only inside a label", total - main) +
+    '<div class="psect">Your labels</div>' +
+    (groups.length ? groups.map(g => line(esc(g.name), counts[g.resourceName] || 0)).join("")
+                   : '<p class="help">No labels yet.</p>') +
+    '<p class="help" style="margin-top:22px">Contact Audit, version ' + VERSION +
+    '. Google&rsquo;s &ldquo;Other contacts&rdquo; are not part of this audit.</p>';
+  $("btnReview").textContent = "Review pending" + (pendingCount() ? " (" + pendingCount() + ")" : "");
+  $("pMenu").classList.remove("hide");
+}
+
+/* ============================================================
+   Bulk piles — decide a whole group at once
+   ============================================================ */
+const PILES = [
+  { id:"all",       name:"Everyone left to sort",        test: p => true },
+  { id:"nophone",   name:"No phone number",              test: p => !hasPhone(p) },
+  { id:"emailonly", name:"Email only",                   test: p => hasEmail(p) && !hasPhone(p) },
+  { id:"nothing",   name:"No phone and no email",        test: p => !hasPhone(p) && !hasEmail(p) },
+  { id:"noname",    name:"No name",                      test: p => !hasName(p) },
+  { id:"nolabel",   name:"No labels",                    test: p => !userLabelsOf(p).length },
+  { id:"outside",   name:"Not in main Contacts list",    test: p => !p._g.has(MY) }
+];
+let bulkSel = new Set(), bulkShown = [];
+
+function pileTest(v){
+  if(v.startsWith("g:")){ const id = v.slice(2); return p => p._g.has(id); }
+  return (PILES.find(x => x.id === v) || PILES[0]).test;
+}
+
+function openBulk(){
+  const cur = $("bulkPile").value || "nophone";
+  let h = PILES.map(x => '<option value="' + x.id + '">' + esc(x.name) + " (" + queue.filter(x.test).length + ")</option>").join("");
+  const withLabel = trayGroups().map(g => [g, queue.filter(p => p._g.has(g.resourceName)).length]).filter(x => x[1]);
+  if(withLabel.length){
+    h += '<optgroup label="Has label">' + withLabel.map(x =>
+      '<option value="g:' + esc(x[0].resourceName) + '">' + esc(x[0].name) + " (" + x[1] + ")</option>").join("") + '</optgroup>';
+  }
+  $("bulkPile").innerHTML = h;
+  $("bulkPile").value = cur;
+  if(!$("bulkPile").value) $("bulkPile").value = "nophone";
+  $("bulkFoot").innerHTML = ACTIONS.map(a =>
+    '<button class="btn tint" data-a="' + a.id + '" style="--c:' + a.color + '">' + esc(a.name) + '</button>').join("");
+  $("bulkFoot").querySelectorAll("[data-a]").forEach(b => b.onclick = () => bulkApply(actionById(b.dataset.a)));
+  bulkSel.clear();
+  renderBulk();
+  $("pMenu").classList.add("hide");
+  $("pBulk").classList.remove("hide");
+}
+
+function renderBulk(){
+  const test = pileTest($("bulkPile").value || "all");
+  const q = $("bulkQ").value.trim().toLowerCase();
+  const text = p => (nameOf(p) + " " + (p.emailAddresses || []).map(e => e.value).join(" ") + " " +
+                     (p.organizations || []).map(o => o.name || "").join(" ")).toLowerCase();
+  bulkShown = queue.filter(p => test(p) && (!q || text(p).includes(q)));
+  const ids = new Set(bulkShown.map(p => p.resourceName));
+  bulkSel.forEach(id => { if(!ids.has(id)) bulkSel.delete(id); });
+
+  $("bulkList").innerHTML = bulkShown.length ? bulkShown.map(p => {
+    const sub = [(p.emailAddresses || [])[0] && p.emailAddresses[0].value,
+                 (p.phoneNumbers || [])[0] && p.phoneNumbers[0].value,
+                 userLabelsOf(p).map(g => g.name).join(", ")].filter(Boolean).join(" · ");
+    return '<label class="row"><input type="checkbox" data-id="' + esc(p.resourceName) + '"' +
+      (bulkSel.has(p.resourceName) ? " checked" : "") + '><span class="nm">' + esc(nameOf(p)) +
+      (sub ? '<small>' + esc(sub) + '</small>' : "") + '</span></label>';
+  }).join("") : '<p class="help">Nobody left to sort in this pile.</p>';
+
+  $("bulkList").querySelectorAll("input").forEach(c => c.onchange = () => {
+    c.checked ? bulkSel.add(c.dataset.id) : bulkSel.delete(c.dataset.id);
+    bulkMeta();
+  });
+  bulkMeta();
+}
+
+function bulkMeta(){
+  $("bulkCount").textContent = bulkShown.length + " shown · " + bulkSel.size + " checked";
+  $("btnBulkAll").textContent = bulkSel.size && bulkSel.size === bulkShown.length ? "Select none" : "Select all";
+  $("bulkFoot").querySelectorAll("button").forEach(b => b.disabled = !bulkSel.size);
+}
+
+function bulkApply(a){
+  const list = bulkShown.filter(p => bulkSel.has(p.resourceName));
+  if(!list.length) return;
+  if(a.picker){ openTray({ mode:"bulk", list }); return; }
+  if(a.confirm && !confirm(a.name + " " + list.length + " contact" + (list.length > 1 ? "s" : "") + "?\n\n" +
+      (a.remove ? "They go to Google's trash when you press Push. Google empties the trash after 30 days."
+                : "Applied when you press Push."))) return;
+  commitMany(list, a, null);
+  bulkSel.clear(); renderBulk();
+  toast(list.length + " marked " + a.name + " — press Push to save");
 }
 
 /* ============================================================
@@ -824,211 +1088,273 @@ function openReview(){
   if(!keys.length){
     box.innerHTML = '<p class="help">Nothing pending.</p>';
   } else {
-    const order = { wedding:0, keep:1, archive:2, delete:3 };
-    keys.sort((a,b) => (order[decisions[a].verdict] - order[decisions[b].verdict]) ||
-                        decisions[a].name.localeCompare(decisions[b].name));
+    const order = id => { const i = ACTIONS.findIndex(a => a.id === id); return i < 0 ? 99 : i; };
+    keys.sort((a, b) => (order(decisions[a].verdict) - order(decisions[b].verdict)) ||
+                         String(decisions[a].name).localeCompare(String(decisions[b].name)));
     box.innerHTML = keys.map(k => {
-      const d = decisions[k];
-      const marks = (d.note ? " · note" : "") +
-                    (d.add.length || d.remove.length ? " · labels" : "");
+      const d = decisions[k], a = actionById(d.verdict);
+      const marks = (d.note !== null ? " · note" : "") + (d.add.length || d.remove.length ? " · labels" : "");
       return '<div class="row"><span class="nm">' + esc(d.name) +
              '<span style="color:var(--muted);font-size:12px">' + esc(marks) + '</span></span>' +
-             '<span class="vd ' + d.verdict + '">' + d.verdict + '</span>' +
-             '<button class="x" data-k="' + esc(k) + '">×</button></div>';
+             '<span class="vd" style="--c:' + a.color + '">' + esc(a.name) + '</span>' +
+             '<button class="x" data-k="' + esc(k) + '" aria-label="Remove">×</button></div>';
     }).join("");
-    box.querySelectorAll(".x").forEach(b => b.addEventListener("click", () => {
-      const id = b.dataset.k;
-      delete decisions[id];
-      saveDecisions();
-      const p = people.find(x => x.resourceName === id);
-      if(p && !queue.some(q => q.resourceName === id)) queue.push(p);
-      openReview(); updateLedger();
-    }));
+    box.querySelectorAll(".x").forEach(b => b.onclick = () => {
+      delete decisions[b.dataset.k];
+      saveDecisions(); computeQueues(); updateLedger(); openReview();
+    });
   }
+  $("pMenu").classList.add("hide");
   $("pReview").classList.remove("hide");
 }
 
 /* ============================================================
-   Push
+   Push — the only place anything is written to Google
    ============================================================ */
 async function ensureGroup(name){
-  const found = groups.find(g => g.name.toLowerCase() === name.toLowerCase());
-  if(found) return found.resourceName;
+  const found = gid(name);
+  if(found) return found;
   const r = await api("/contactGroups", { method:"POST", body:{ contactGroup:{ name } } });
-  groups.push({ resourceName: r.resourceName, name: r.name });
+  groups.push({ resourceName: r.resourceName, name: r.name || name });
+  groups.sort(byName);
   return r.resourceName;
 }
 
-const chunk = (arr, n) => { const o=[]; for(let i=0;i<arr.length;i+=n) o.push(arr.slice(i,i+n)); return o; };
+const chunk = (arr, n) => { const o = []; for(let i = 0; i < arr.length; i += n) o.push(arr.slice(i, i + n)); return o; };
 
 function openPush(){
   const keys = Object.keys(decisions);
-  if(!keys.length){ toast("Nothing to push"); return; }
-  const c = { keep:0, archive:0, wedding:0, delete:0, note:0, label:0 };
+  if(!keys.length && !catchup.length){ toast("Nothing to push"); return; }
+  const by = {}; let notes = 0, labs = 0, dels = 0;
   keys.forEach(k => {
     const d = decisions[k];
-    c[d.verdict]++;
-    if(d.note !== null) c.note++;
-    if(d.add.length || d.remove.length) c.label++;
+    by[d.verdict] = (by[d.verdict] || 0) + 1;
+    if(d.del) dels++;
+    else { if(d.note !== null) notes++; if(d.add.length || d.remove.length) labs++; }
   });
-
-  const line = (n, t) => n ? '<div class="row"><span class="nm">' + t +
-    '</span><span style="font-variant-numeric:tabular-nums">' + n + '</span></div>' : "";
+  const line = (n, t, c) => n ? '<div class="row"><span class="nm"' + (c ? ' style="color:' + c + '"' : "") + '>' + t +
+    '</span><span class="num"' + (c ? ' style="color:' + c + '"' : "") + '>' + n + '</span></div>' : "";
+  const seen = new Set(ACTIONS.map(a => a.id));
 
   $("pushBody").innerHTML =
     '<p class="help" style="margin-top:0">Here is exactly what will change in your Google account.</p>' +
-    line(c.wedding, 'Added to “' + WEDDING_LABEL + '”') +
-    line(c.archive, 'Labelled “' + ARCHIVE_LABEL + '”') +
-    line(c.label,   'Other label changes') +
-    line(c.note,    'Notes written') +
-    line(c.keep,    'Kept — no change made') +
-    (c.delete ? '<div class="row"><span class="nm" style="color:var(--danger)">' +
-       'Deleted permanently</span><span style="color:var(--danger)">' + c.delete + '</span></div>' +
-       '<p class="help" style="color:var(--danger)">Deleted contacts sit in Google\'s trash for 30 days, then are gone.</p>' : "");
+    ACTIONS.map(a => line(by[a.id],
+      a.remove ? esc(a.name) + " — moved to Google&rsquo;s trash"
+      : esc(a.name) + ((a.labels || []).length ? " — adds “" + esc(a.labels.join("”, “")) + "”" : ""),
+      a.remove ? "var(--danger)" : null)).join("") +
+    Object.keys(by).filter(v => !seen.has(v)).map(v => line(by[v], esc(v))).join("") +
+    line(labs, "Label changes you picked") +
+    line(notes, "Notes rewritten") +
+    line(keys.length - dels, "Marked “" + esc(REVIEWED_LABEL) + "” so they don&rsquo;t come back") +
+    line(catchup.length, "Sorted earlier — also marked “" + esc(REVIEWED_LABEL) + "”") +
+    (dels ? '<p class="help" style="color:var(--danger)">Deleted contacts sit in Google&rsquo;s trash for 30 days, then are gone.</p>' : "") +
+    (dels > 12 ? '<p class="help">Deletions are paced to stay under Google&rsquo;s write limit, so this will take roughly ' +
+       Math.ceil(dels * 1.2 / 60) + ' minute' + (dels * 1.2 > 90 ? "s" : "") + '. Leave the screen open.</p>' : "");
 
+  const total = keys.length + catchup.length;
   $("pushFoot").innerHTML =
     '<button class="btn ghost" id="btnCancelPush">Cancel</button>' +
-    '<button class="btn' + (c.delete ? ' warn' : '') + '" id="btnGo">Push ' + keys.length + '</button>';
+    (keys.length ? '<button class="btn ghost" id="btnPushReview">See the list</button>' : "") +
+    '<button class="btn' + (dels ? " warn" : "") + '" id="btnGo">Push ' + total + '</button>';
   $("btnCancelPush").onclick = () => $("pPush").classList.add("hide");
+  const pr = $("btnPushReview"); if(pr) pr.onclick = () => { $("pPush").classList.add("hide"); openReview(); };
   $("btnGo").onclick = doPush;
   $("pPush").classList.remove("hide");
 }
 
+async function writeNote(id, d){
+  const body = etag => ({ etag, biographies: d.note ? [{ value: d.note, contentType: "TEXT_PLAIN" }] : [] });
+  const path = "/" + id + ":updateContact?updatePersonFields=biographies";
+  try { await api(path, { method:"PATCH", body: body(d.etag) }); }
+  catch(e){
+    // The contact changed since it was loaded (another device, or an earlier try): fetch the current version once.
+    if(e.status !== 400 && e.status !== 409 && e.status !== 412) throw e;
+    const fresh = await api("/" + id + "?personFields=biographies");
+    d.etag = fresh.etag;
+    await api(path, { method:"PATCH", body: body(fresh.etag) });
+  }
+}
+
+let pushing = false;
 async function doPush(){
+  if(pushing) return;
+  pushing = true;
   const keys = Object.keys(decisions);
   const foot = $("pushFoot");
   foot.innerHTML = '<button class="btn" disabled id="btnGo">Working…</button>';
-  const say = t => { $("btnGo").textContent = t; };
+  const say = t => { const b = $("btnGo"); if(b) b.textContent = t; };
+  onWait = secs => say("Google asked us to slow down — waiting " + secs + "s");
   const failures = [];
-  const failedIds = new Set();   // don't mark these sorted — they get re-served
+  const failedIds = new Set();   // these stay pending
+  const gone = new Set();        // no longer exist in Google
+  const fail = (ids, text) => { failures.push(text); ids.forEach(id => failedIds.add(id)); };
 
   try {
-    // 1. groups we may need
-    const wedIds = keys.filter(k => decisions[k].verdict === "wedding");
-    const arcIds = keys.filter(k => decisions[k].verdict === "archive");
-    let wedGroup = null, arcGroup = null;
-    if(wedIds.length){ say("Creating list…"); wedGroup = await ensureGroup(WEDDING_LABEL); }
-    if(arcIds.length){ say("Creating label…"); arcGroup = await ensureGroup(ARCHIVE_LABEL); }
-
-    // 2. notes (one call each — Google requires the etag)
-    const noteIds = keys.filter(k => decisions[k].note !== null && decisions[k].verdict !== "delete");
-    for(let i=0;i<noteIds.length;i++){
-      const id = noteIds[i], d = decisions[id];
-      say("Notes " + (i+1) + "/" + noteIds.length);
-      try {
-        await api("/" + id + ":updateContact?updatePersonFields=biographies", {
-          method: "PATCH",
-          body: { etag: d.etag, biographies: [{ value: d.note, contentType: "TEXT_PLAIN" }] }
-        });
-      } catch(e){ failures.push(d.name + " (note): " + e.message); failedIds.add(id); }
+    // 1. labels we may need
+    say("Checking labels…");
+    const revG = await ensureGroup(REVIEWED_LABEL);
+    const nameId = {};
+    for(const k of keys){
+      for(const n of decisions[k].labels || []){
+        if(!(n in nameId)) nameId[n] = await ensureGroup(n);
+      }
     }
 
-    // 3. label membership, batched per group
+    // 2. notes (one call each — Google requires the contact's current version)
+    const noteIds = keys.filter(k => decisions[k].note !== null && !decisions[k].del);
+    for(let i = 0; i < noteIds.length; i++){
+      const id = noteIds[i], d = decisions[id];
+      say("Notes " + (i + 1) + "/" + noteIds.length);
+      try { await writeNote(id, d); }
+      catch(e){ if(e.status === 404) gone.add(id); else fail([id], d.name + " (note): " + e.message); }
+      if(i < noteIds.length - 1) await sleep(PACE_NOTE);
+    }
+
+    // 3. label membership, batched per label. Adds run first so a contact is never left with no label at all.
     const adds = {}, removes = {};
-    const push = (map, g, id) => { if(!g) return; (map[g] = map[g] || []).push(id); };
+    const put = (map, g, id) => { if(!g) return; (map[g] = map[g] || new Set()).add(id); };
     keys.forEach(k => {
       const d = decisions[k];
-      if(d.verdict === "delete") return;
-      if(d.verdict === "wedding") push(adds, wedGroup, k);
-      if(d.verdict === "archive") push(adds, arcGroup, k);
-      d.add.forEach(g => push(adds, g, k));
-      d.remove.forEach(g => push(removes, g, k));
+      if(d.del || failedIds.has(k) || gone.has(k)) return;
+      put(adds, revG, k);
+      (d.labels || []).forEach(n => put(adds, nameId[n], k));
+      d.add.forEach(g => put(adds, g, k));
+      d.remove.forEach(g => put(removes, g, k));
     });
+    catchup.forEach(p => put(adds, revG, p.resourceName));
 
     const jobs = [];
-    Object.keys(adds).forEach(g => chunk([...new Set(adds[g])],200).forEach(c => jobs.push([g,c,null])));
-    Object.keys(removes).forEach(g => chunk([...new Set(removes[g])],200).forEach(c => jobs.push([g,null,c])));
-    for(let i=0;i<jobs.length;i++){
-      say("Labels " + (i+1) + "/" + jobs.length);
+    Object.keys(adds).forEach(g => chunk([...adds[g]], 200).forEach(c => jobs.push([g, c, null])));
+    Object.keys(removes).forEach(g => chunk([...removes[g]], 200).forEach(c => jobs.push([g, null, c])));
+    for(let i = 0; i < jobs.length; i++){
+      say("Labels " + (i + 1) + "/" + jobs.length);
       const [g, add, rem] = jobs[i];
       try {
-        await api("/" + g + "/members:modify", {
-          method:"POST",
-          body:{ resourceNamesToAdd: add || [], resourceNamesToRemove: rem || [] }
+        const r = await api("/" + g + "/members:modify", {
+          method: "POST",
+          body: { resourceNamesToAdd: add || [], resourceNamesToRemove: rem || [] }
         });
+        (r.notFoundResourceNames || []).forEach(id => gone.add(id));
       } catch(e){
-        failures.push("Label batch: " + e.message);
-        (add || rem || []).forEach(id => failedIds.add(id));
+        const gname = (groups.find(x => x.resourceName === g) || {}).name || "a label";
+        fail(add || rem || [], "“" + gname + "” for " + (add || rem).length + " contacts: " + e.message);
       }
+      if(i < jobs.length - 1) await sleep(PACE_WRITE);   // stay under the write cap
     }
 
     // 4. deletes, last
-    const delIds = keys.filter(k => decisions[k].verdict === "delete");
-    for(let i=0;i<delIds.length;i++){
-      say("Deleting " + (i+1) + "/" + delIds.length);
-      try { await api("/" + delIds[i] + ":deleteContact", { method:"DELETE" }); }
+    const delIds = keys.filter(k => decisions[k].del);
+    for(let i = 0; i < delIds.length; i++){
+      say("Deleting " + (i + 1) + "/" + delIds.length);
+      try { await api("/" + delIds[i] + ":deleteContact", { method:"DELETE" }); gone.add(delIds[i]); }
       catch(e){
-        failures.push(decisions[delIds[i]].name + " (delete): " + e.message);
-        failedIds.add(delIds[i]);
+        if(e.status === 404) gone.add(delIds[i]);
+        else fail([delIds[i]], decisions[delIds[i]].name + " (delete): " + e.message);
       }
+      if(i < delIds.length - 1) await sleep(PACE_WRITE);   // ~50/min, under Google's cap
     }
 
-    // 5. remember what went through, keep failures pending for a retry
+    // 5. what went through is now remembered by Google; failures stay pending for a retry
     const kept = {};
-    keys.forEach(k => {
-      if(failedIds.has(k)) kept[k] = decisions[k];
-      else done[k] = decisions[k].verdict;
-    });
+    keys.forEach(k => { if(failedIds.has(k)) kept[k] = decisions[k]; else delete done[k]; });
     decisions = kept; history = [];
+    catchup = catchup.filter(p => {
+      const id = p.resourceName;
+      if(failedIds.has(id)) return true;
+      delete done[id]; p._g.add(revG); return false;
+    });
+    people.forEach(p => {
+      const id = p.resourceName;
+      if(gone.has(id)) p._gone = true;
+      else if(keys.includes(id) && !failedIds.has(id)) p._g.add(revG);
+    });
     saveDecisions(); saveDone();
+    computeQueues(); updateLedger();
 
+    const left = pendingCount() + catchup.length;
     $("pushBody").innerHTML = failures.length
       ? '<h3 style="font-family:Fraunces,serif">Pushed, with ' + failures.length + ' problem' +
-        (failures.length>1?'s':'') + '</h3><p class="help">Everything else went through. These didn\'t:</p>' +
-        '<p class="help">' + failures.slice(0,25).map(esc).join("<br>") + '</p>'
-      : '<div class="empty"><h3>Done</h3><p>Your Google Contacts are updated. ' +
-        'Check the ' + esc(WEDDING_LABEL) + ' label in Google Contacts to see the list.</p></div>';
-    foot.innerHTML = '<button class="btn" id="btnFin">Back to sorting</button>';
+        (failures.length > 1 ? "s" : "") + '</h3><p class="help">Everything else went through. These didn&rsquo;t, and are still pending:</p>' +
+        '<p class="help">' + failures.slice(0, 25).map(esc).join("<br>") + '</p>'
+      : '<div class="empty"><h3>Done</h3><p>Your Google Contacts are updated. Every contact you sorted now carries “' +
+        esc(REVIEWED_LABEL) + '”, so it won&rsquo;t come back on any device.</p></div>';
+    foot.innerHTML = failures.length
+      ? '<button class="btn ghost" id="btnFin">Back to sorting</button><button class="btn" id="btnRetryFail">Retry ' + left + '</button>'
+      : '<button class="btn" id="btnFin">Back to sorting</button>';
+    const rf = $("btnRetryFail"); if(rf) rf.onclick = doPush;
     $("btnFin").onclick = async () => {
-      $("pPush").classList.add("hide");
-      $("pReview").classList.add("hide");
+      ["pPush","pReview","pBulk","pMenu"].forEach(id => $(id).classList.add("hide"));
       await loadEverything();
     };
   } catch(e){
     $("pushBody").innerHTML = '<h3 style="font-family:Fraunces,serif">Stopped</h3>' +
       '<p class="help">' + esc(e.message) + '</p>' +
-      '<p class="help">Your pending decisions are still saved. Try pushing again.</p>';
-    foot.innerHTML = '<button class="btn" id="btnRetry">Try again</button>';
+      '<p class="help">Your pending decisions are still saved on this device. Try pushing again.</p>';
+    foot.innerHTML = '<button class="btn ghost" id="btnFin2">Back</button><button class="btn" id="btnRetry">Try again</button>';
     $("btnRetry").onclick = doPush;
+    $("btnFin2").onclick = () => $("pPush").classList.add("hide");
   }
+  onWait = null;
+  pushing = false;
 }
 
 /* ============================================================
    Wiring
    ============================================================ */
-$("btnConnect").onclick = connect;
-$("aArch").onclick  = () => actNow("archive");
-$("aKeep").onclick  = () => actNow("keep");
-$("aWed").onclick   = () => actNow("wedding");
-$("aUndo").onclick  = undo;
-$("aDel").onclick   = () => {
-  if(!queue.length) return;
-  if(confirm("Delete " + nameOf(queue[0]) + " from Google Contacts?\n\nApplied when you press Push."))
-    actNow("delete");
+function renderActions(){
+  $("actions").innerHTML =
+    '<button class="act a-undo" id="aUndo" title="Undo (U)" aria-label="Undo">↺</button>' +
+    ACTIONS.map(a => '<button class="act' + (a.wide ? " wide" : "") + (a.small ? " small" : "") +
+      '" data-a="' + a.id + '" style="--c:' + a.color + '" title="' + esc(a.name) + '" aria-label="' + esc(a.name) + '">' +
+      a.icon + (a.wide ? " <span>" + esc(a.name) + "</span>" : "") + '</button>').join("");
+  $("aUndo").onclick = undo;
+  $("actions").querySelectorAll("[data-a]").forEach(b => b.onclick = () => trigger(actionById(b.dataset.a)));
+  $("hint").textContent = "Swipe " + ["left","right","up"].map(d => {
+    const a = swipeAction(d); return a ? d + " " + a.name.toLowerCase() : "";
+  }).filter(Boolean).join(" · ");
+}
+renderActions();
+
+$("btnMenu").onclick = openMenu;
+$("btnMenuClose").onclick = () => $("pMenu").classList.add("hide");
+$("btnBulk").onclick = openBulk;
+$("btnBulkClose").onclick = () => { $("pBulk").classList.add("hide"); render(); };
+$("bulkPile").onchange = () => { bulkSel.clear(); renderBulk(); };
+$("bulkQ").oninput = renderBulk;
+$("btnBulkAll").onclick = () => {
+  if(bulkSel.size && bulkSel.size === bulkShown.length) bulkSel.clear();
+  else bulkShown.forEach(p => bulkSel.add(p.resourceName));
+  renderBulk();
 };
 $("btnReview").onclick = openReview;
+$("btnReload").onclick = () => { $("pMenu").classList.add("hide"); loadEverything(); };
 $("btnCloseReview").onclick = () => { $("pReview").classList.add("hide"); render(); };
-$("btnPush").onclick  = openPush;
+$("btnPush").onclick = openPush;
 $("btnPush2").onclick = openPush;
-$("btnClosePush").onclick = () => $("pPush").classList.add("hide");
+$("btnClosePush").onclick = () => { if(!pushing) $("pPush").classList.add("hide"); };
 $("btnClearAll").onclick = () => {
-  if(!confirm("Discard all pending decisions? Nothing has been sent to Google yet.")) return;
+  if(!pendingCount()) return;
+  if(!confirm("Discard all " + pendingCount() + " pending decisions? Nothing has been sent to Google yet.")) return;
   decisions = {}; history = []; saveDecisions();
   $("pReview").classList.add("hide");
-  startDeck(); toast("Cleared");
+  computeQueues(); render(); toast("Cleared");
 };
+$("btnTrayCancel").onclick = closeTray;
+$("btnTrayDone").onclick = trayDone;
+$("trayQ").oninput = renderTray;
 
 document.addEventListener("keydown", e => {
-  if(e.target.matches("input,textarea")) return;
-  if(!queue.length) return;
-  if(e.key === "ArrowLeft")  actNow("archive");
-  if(e.key === "ArrowRight") actNow("keep");
-  if(e.key === "ArrowUp")    actNow("wedding");
-  if(e.key.toLowerCase() === "u") undo();
+  if(e.target.matches("input,textarea,select")) return;
+  if(document.querySelector(".panel:not(.hide)")) return;
+  if(!people.length) return;
+  if(e.key.toLowerCase() === "u"){ undo(); return; }
+  const a = ACTIONS.find(x => x.key && x.key.toLowerCase() === e.key.toLowerCase());
+  if(a && queue.length){ e.preventDefault(); trigger(a); }
 });
 
-const saved = store.get(K_CID);
-if(saved) $("inClientId").value = saved;
+// Start: reuse the last sign-in if it is still good, otherwise ask once.
+if(loadToken()) loadEverything();
+else needSignIn("Sign in with Google to load your contacts.").then(loadEverything);
 </script>
 </body>
 </html>
