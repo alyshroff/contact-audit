@@ -100,6 +100,9 @@ input,textarea,select{font:inherit}
 .lab{border:1px solid rgba(26,22,34,.2);border-radius:999px;padding:5px 11px;font-size:12.5px;color:var(--text)}
 .lab.on{background:var(--text);color:var(--paper);border-color:var(--text)}
 .lab.addlab{border-style:dashed;color:var(--muted);border-color:rgba(26,22,34,.32);font-weight:500}
+.lab.new{background:var(--label);border-color:var(--label);color:var(--ink);font-weight:600}
+.labhint{font-size:12px;color:var(--label);margin-top:7px}
+.labhint:empty{display:none}
 .nolab{font-size:13px;color:var(--muted);padding:5px 0}
 .sect{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:20px 0 7px}
 textarea.note{
@@ -235,7 +238,7 @@ select.txt{appearance:none;-webkit-appearance:none}
     <input class="txt" id="trayQ" placeholder="Search labels, or type a new one" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" enterkeyhint="done">
     <div id="trayBody"></div>
   </div>
-  <div class="pfoot"><button class="btn" id="btnTrayDone">Done</button></div>
+  <div class="pfoot" id="trayFoot"></div>
 </div></div>
 
 <!-- Menu / status -->
@@ -293,7 +296,7 @@ select.txt{appearance:none;-webkit-appearance:none}
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
 "use strict";
-const VERSION = "5.2";
+const VERSION = "5.3";
 
 /* ============================================================
    SETTINGS — the only place you need to edit to change behaviour
@@ -349,7 +352,7 @@ const store = (() => {
 })();
 
 // Same keys as versions 1-4, so nothing sorted on this device is lost.
-const K_DEC = "ca.decisions", K_DONE = "ca.done", K_TOK = "ca.token", K_PINS = "ca.pins";
+const K_DEC = "ca.decisions", K_DONE = "ca.done", K_TOK = "ca.token", K_PINS = "ca.pins", K_STAGE = "ca.staged";
 
 const SCOPE = "https://www.googleapis.com/auth/contacts";
 const API = "https://people.googleapis.com/v1";
@@ -374,6 +377,18 @@ try { decisions = JSON.parse(store.get(K_DEC) || "{}") || {}; } catch(e){ decisi
 try { done = JSON.parse(store.get(K_DONE) || "{}") || {}; } catch(e){ done = {}; }
 try { pins = JSON.parse(store.get(K_PINS) || "null"); } catch(e){ pins = null; }
 if(!Array.isArray(pins)) pins = DEFAULT_PINS.slice();
+
+// Labels picked in the tray for a card that hasn't been decided yet: resourceName -> Set of label ids.
+// They ride along with whichever decision (keep, archive, …) comes next.
+let staged = {};
+try {
+  const raw = JSON.parse(store.get(K_STAGE) || "{}") || {};
+  for(const k in raw) if(Array.isArray(raw[k])) staged[k] = new Set(raw[k]);
+} catch(e){ staged = {}; }
+const saveStaged = () => {
+  const o = {}; for(const k in staged) o[k] = [...staged[k]];
+  store.set(K_STAGE, JSON.stringify(o));
+};
 
 const $ = id => document.getElementById(id);
 const saveDecisions = () => store.set(K_DEC, JSON.stringify(decisions));
@@ -649,6 +664,10 @@ function pushTotal(){
 
 function startDeck(){
   computeQueues();
+  const waiting = new Set(queue.map(p => p.resourceName));
+  let pruned = false;
+  for(const k in staged) if(!waiting.has(k)){ delete staged[k]; pruned = true; }
+  if(pruned) saveStaged();
   $("ledger").classList.remove("hide");
   $("rail").classList.remove("hide");
   render();
@@ -660,6 +679,10 @@ function updateLedger(){
   let h = '<div class="tally"><span class="n">' + queue.length + '</span><span class="l">Left</span></div>';
   ACTIONS.forEach(a => {
     if(a.remove && !by[a.id]) return;
+    if(a.picker){
+      by[a.id] = Object.values(decisions).filter(d => !d.del &&
+        (d.verdict === a.id || d.add.length || d.remove.length)).length;
+    }
     h += '<div class="tally" style="--c:' + a.color + '"><span class="n">' + (by[a.id] || 0) +
          '</span><span class="l">' + esc(a.name) + '</span></div>';
   });
@@ -727,11 +750,6 @@ function buildCard(p){
   if(!f) f = '<div class="field"><span class="k">Empty</span>' +
              '<span style="color:var(--muted)">No email, phone, or address on file</span></div>';
 
-  const mine = userLabelsOf(p);
-  const labs = (mine.length
-      ? mine.map(g => '<span class="lab on">' + esc(g.name) + '</span>').join("")
-      : '<span class="nolab">None yet</span>') +
-    '<button class="lab addlab" data-open="tray">Edit labels</button>';
 
   el.innerHTML =
     ACTIONS.filter(a => a.swipe).map(a =>
@@ -745,15 +763,30 @@ function buildCard(p){
       (orgTxt && orgTxt !== nm ? '<div class="corg">' + esc(orgTxt) + '</div>' : '<div style="height:8px"></div>') +
       (p._g.has(MY) ? "" : '<div class="flag">Label only — joins your main Contacts list on the next push</div>') +
       f +
-      '<div class="sect">Labels</div><div class="labels">' + labs + '</div>' +
+      '<div class="sect">Labels</div><div class="labels"></div><div class="labhint"></div>' +
       '<div class="sect">Note</div>' +
       '<textarea class="note" placeholder="Add a note…">' + esc(bioOf(p)) + '</textarea>' +
     '</div>';
 
-  el.querySelector('[data-open="tray"]').onclick = ev => { ev.stopPropagation(); openTray({ mode:"card", person:p }); };
+  paintLabels(el, p);
   el.querySelector('[data-open="name"]').onclick = ev => { ev.stopPropagation(); editName(el, p); };
   el.querySelector(".note").addEventListener("pointerdown", ev => ev.stopPropagation());
   return el;
+}
+
+/* ---------- Labels on the card ---------- */
+// Shows the contact's labels, with any picks from the tray that are waiting for a decision.
+function paintLabels(el, p){
+  const st = staged[p.resourceName];
+  const cur = st ? trayGroups().filter(g => st.has(g.resourceName)) : userLabelsOf(p);
+  const box = el.querySelector(".labels");
+  box.innerHTML = (cur.length
+      ? cur.map(g => { const fresh = st && !p._g.has(g.resourceName);
+          return '<span class="lab on' + (fresh ? " new" : "") + '">' + (fresh ? "+ " : "") + esc(g.name) + '</span>'; }).join("")
+      : '<span class="nolab">None' + (st ? "" : " yet") + '</span>') +
+    '<button class="lab addlab" data-open="tray">Edit labels</button>';
+  el.querySelector(".labhint").textContent = st ? "Label changes are saved with your next choice: keep or archive." : "";
+  box.querySelector('[data-open="tray"]').onclick = ev => { ev.stopPropagation(); openTray({ mode:"card", person:p }); };
 }
 
 /* ---------- Editing a name on the card ---------- */
@@ -866,6 +899,9 @@ const topEl = p => (cardEls[0] && cardEls[0].dataset.rn === p.resourceName) ? ca
 function commit(person, el, a, sel){
   const before = pendingCount();
   const extra = {};
+  const id0 = person.resourceName;
+  if(!sel && staged[id0] && !a.remove) sel = staged[id0];
+  if(staged[id0]){ delete staged[id0]; saveStaged(); }
   if(sel){
     const had = new Set(userLabelsOf(person).map(g => g.resourceName));
     extra.add = [...sel].filter(g => !had.has(g));
@@ -923,6 +959,14 @@ function trigger(a){
 function undo(){
   const ids = history.pop();
   if(!ids){ toast("Nothing to undo"); return; }
+  if(ids.length === 1){
+    const d = decisions[ids[0]], p = people.find(x => x.resourceName === ids[0]);
+    if(d && p && !d.del && (d.add.length || d.remove.length)){
+      const sel = new Set(userLabelsOf(p).map(g => g.resourceName));
+      d.add.forEach(g => sel.add(g)); d.remove.forEach(g => sel.delete(g));
+      staged[ids[0]] = sel; saveStaged();
+    }
+  }
   ids.forEach(id => delete decisions[id]);
   saveDecisions();
   computeQueues();
@@ -937,7 +981,15 @@ let tray = null;   // { mode:"card"|"bulk", person, list, sel:Set }
 
 function openTray(t){
   tray = t;
-  tray.sel = new Set(t.mode === "card" ? userLabelsOf(t.person).map(g => g.resourceName) : []);
+  const st = t.mode === "card" && staged[t.person.resourceName];
+  tray.sel = new Set(t.mode !== "card" ? [] : st ? [...st] : userLabelsOf(t.person).map(g => g.resourceName));
+  // A card keeps waiting for keep or archive after Done. A bulk selection is decided right here.
+  $("trayFoot").innerHTML = t.mode === "card"
+    ? '<button class="btn" id="btnTrayDone">Done</button>'
+    : ACTIONS.filter(a => !a.picker && !a.remove).map(a =>
+        '<button class="btn tint" data-a="' + a.id + '" style="--c:' + a.color + '">Label + ' + esc(a.name) + '</button>').join("");
+  $("trayFoot").querySelectorAll("button").forEach(b =>
+    b.onclick = () => trayDone(b.dataset.a ? actionById(b.dataset.a) : null));
   $("traySub").textContent = t.mode === "card" ? nameOf(t.person)
     : t.list.length + " contact" + (t.list.length > 1 ? "s" : "") + " — labels are added, none removed";
   $("trayQ").value = "";
@@ -1003,7 +1055,8 @@ async function trayUseText(){
   if(trayBusy) return false;
   const existing = gid(name);
   if(existing && hiddenIds().has(existing)){ toast("“" + name + "” is handled by the swipes"); return true; }
-  trayBusy = true; $("btnTrayDone").disabled = true;
+  const lock = on => $("trayFoot").querySelectorAll("button").forEach(b => b.disabled = on);
+  trayBusy = true; lock(true);
   let ok = true;
   try {
     const id = existing || await ensureGroup(name);
@@ -1011,12 +1064,12 @@ async function trayUseText(){
     if(tray === t) $("trayQ").value = "";
     toast((existing ? "Ticked “" : "Created “") + name + "”");
   } catch(e){ ok = false; toast("Couldn't create “" + name + "”: " + e.message, 4000); }
-  trayBusy = false; $("btnTrayDone").disabled = false;
+  trayBusy = false; lock(false);
   if(tray === t) renderTray();
   return ok;
 }
 
-async function trayDone(){
+async function trayDone(bulkAction){
   if(!tray || trayBusy) return;
   // A brand-new name still sitting in the box (nothing matches it) means "create this and use it".
   const typed = $("trayQ").value.trim().toLowerCase();
@@ -1024,21 +1077,27 @@ async function trayDone(){
     if(!(await trayUseText())) return;
   }
   if(!tray) return;
-  const t = tray, a = labelAction();
+  const t = tray;
+  const picked = groups.filter(g => t.sel.has(g.resourceName)).map(g => g.name);
   if(t.mode === "bulk"){
     if(!t.sel.size){ toast("Pick at least one label"); return; }
+    const a = bulkAction || ACTIONS.find(x => !x.picker && !x.remove);
     closeTray();
     commitMany(t.list, a, [...t.sel]);
     bulkSel.clear(); renderBulk();
-    toast(t.list.length + " marked " + a.name + " — press Push to save");
+    toast(t.list.length + " labelled + " + a.name + " — press Push to save", 3000);
     return;
   }
+  // One card: remember the picks and leave the card in place. The next swipe decides keep or archive.
   closeTray();
+  const id = t.person.resourceName;
+  const had = new Set(userLabelsOf(t.person).map(g => g.resourceName));
+  const same = had.size === t.sel.size && [...had].every(g => t.sel.has(g));
+  if(same) delete staged[id]; else staged[id] = new Set(t.sel);
+  saveStaged();
   const el = topEl(t.person);
-  flyFor(el, a, 0);
-  commit(t.person, el, a, t.sel);
-  const picked = groups.filter(g => t.sel.has(g.resourceName)).map(g => g.name);
-  toast(nameOf(t.person) + " → " + (picked.length ? picked.join(", ") : "no labels"), 3000);
+  if(el) paintLabels(el, t.person);
+  toast(same ? "No label changes" : (picked.length ? picked.join(", ") : "Labels cleared") + " — now keep or archive", 3200);
 }
 
 /* ============================================================
@@ -1453,7 +1512,6 @@ $("btnClearAll").onclick = () => {
   computeQueues(); render(); toast("Cleared");
 };
 $("btnTrayCancel").onclick = closeTray;
-$("btnTrayDone").onclick = trayDone;
 $("trayQ").oninput = renderTray;
 $("trayQ").addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); trayUseText(); } });
 
